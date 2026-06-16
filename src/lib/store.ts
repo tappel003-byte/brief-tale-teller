@@ -10,6 +10,8 @@ import type {
   FindingsSection,
   FreeTextSection,
 } from "./types";
+import { saveJob } from "./jobs-db";
+import { applyGrokRows, type GrokRow } from "./grok-csv";
 
 const LS_KEY = "report-builder.draft.v1";
 
@@ -37,6 +39,8 @@ interface Actions {
   removePhotoFromPin: (pinId: string, photoIdx: number) => void;
   setObjectUrls: (urls: Record<string, string>) => void;
   hydrateFromDraft: () => boolean;
+  applyGrok: (rows: GrokRow[]) => void;
+  loadJobById: (id: string) => Promise<boolean>;
 }
 
 export const useReportStore = create<State & Actions>((set, get) => ({
@@ -46,8 +50,12 @@ export const useReportStore = create<State & Actions>((set, get) => ({
   busy: false,
 
   loadProject: (project, objectUrls) => {
-    set({ project, objectUrls, selectedPinId: null });
-    persistDraft(project);
+    // Back-fill id for legacy projects (.report.json from older versions).
+    const safe: ReportProject = project.id
+      ? project
+      : { ...project, id: randomId() };
+    set({ project: safe, objectUrls, selectedPinId: null });
+    persistDraft(safe);
   },
 
   closeProject: () => {
@@ -245,6 +253,37 @@ export const useReportStore = create<State & Actions>((set, get) => ({
       return false;
     }
   },
+
+  loadJobById: async (id: string) => {
+    try {
+      const { loadJob } = await import("./jobs-db");
+      const proj = await loadJob(id);
+      if (!proj) return false;
+      // Revoke old URLs.
+      const oldUrls = get().objectUrls;
+      Object.values(oldUrls).forEach((u) => {
+        try { URL.revokeObjectURL(u); } catch { /* noop */ }
+      });
+      const urls: Record<string, string> = {};
+      for (const [filename, asset] of Object.entries(proj.assets)) {
+        const blob = base64ToBlob(asset.base64, asset.mime);
+        urls[filename] = URL.createObjectURL(blob);
+      }
+      set({ project: proj, objectUrls: urls, selectedPinId: null });
+      return true;
+    } catch (e) {
+      console.warn("loadJobById failed", e);
+      return false;
+    }
+  },
+
+  applyGrok: (rows) =>
+    set((s) => {
+      if (!s.project) return s;
+      const next = applyGrokRows(s.project, rows);
+      persistDraft(next);
+      return { project: next };
+    }),
 }));
 
 export type { CoverSection, FreeTextSection, FindingsSection, PhotoRef };
@@ -259,6 +298,24 @@ function persistDraft(project: ReportProject) {
   } catch (e) {
     console.warn("Draft autosave failed (quota?)", e);
   }
+  // Also write to IndexedDB so the job appears on the jobs list.
+  // Debounced to avoid hammering on rapid edits.
+  scheduleJobSave(project);
+}
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingSave: ReportProject | null = null;
+function scheduleJobSave(project: ReportProject) {
+  pendingSave = project;
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    const p = pendingSave;
+    pendingSave = null;
+    if (p) {
+      saveJob(p).catch((e) => console.warn("IDB save failed", e));
+    }
+  }, 400);
 }
 
 function base64ToBlob(b64: string, mime: string): Blob {
@@ -267,4 +324,11 @@ function base64ToBlob(b64: string, mime: string): Blob {
   const bytes = new Uint8Array(len);
   for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
   return new Blob([bytes], { type: mime });
+}
+
+function randomId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `job-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }

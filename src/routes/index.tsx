@@ -1,86 +1,50 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useRef, useState, useCallback, useEffect } from "react";
-import { FileArchive, FilePlus2, FileJson, Loader2, AlertTriangle } from "lucide-react";
-import { importZipFile } from "@/lib/zip-import";
-import { loadReportJson } from "@/lib/project-io";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { FilePlus2, Trash2, FileArchive, CircleCheck, CircleAlert } from "lucide-react";
+import { listJobs, deleteJob, type JobSummary } from "@/lib/jobs-db";
 import { useReportStore } from "@/lib/store";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Report Builder — Drop your Field Reporter export" },
+      { title: "Report Builder — Jobs" },
       {
         name: "description",
         content:
-          "Drop a Field Reporter ZIP to start a new distress-survey report, or reopen a saved project.",
+          "Your saved distress-survey jobs. Create new reports from Field Reporter ZIPs.",
       },
     ],
   }),
-  component: HomePage,
+  component: JobsPage,
 });
 
-function HomePage() {
+function JobsPage() {
   const navigate = useNavigate();
-  const loadProject = useReportStore((s) => s.loadProject);
-  const hydrate = useReportStore((s) => s.hydrateFromDraft);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [drag, setDrag] = useState(false);
-  const [hasDraft, setHasDraft] = useState(false);
-  const zipInput = useRef<HTMLInputElement>(null);
-  const jsonInput = useRef<HTMLInputElement>(null);
+  const [jobs, setJobs] = useState<JobSummary[] | null>(null);
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const closeProject = useReportStore((s) => s.closeProject);
 
   useEffect(() => {
-    setHasDraft(!!localStorage.getItem("report-builder.draft.v1"));
-  }, []);
+    // Clear any in-flight project so we get a clean slate when reopening.
+    closeProject();
+    void refresh();
+  }, [closeProject]);
 
-  const handleFile = useCallback(
-    async (file: File) => {
-      setBusy(true);
-      setError(null);
-      try {
-        if (/\.report\.json$/i.test(file.name) || file.type === "application/json") {
-          const { project, objectUrls } = await loadReportJson(file);
-          loadProject(project, objectUrls);
-        } else if (
-          /\.zip$/i.test(file.name) ||
-          file.type === "application/zip" ||
-          file.type === "application/x-zip-compressed"
-        ) {
-          const { project, objectUrls } = await importZipFile(file);
-          loadProject(project, objectUrls);
-        } else {
-          throw new Error("Unsupported file. Drop a .zip or .report.json file.");
-        }
-        navigate({ to: "/workspace" });
-      } catch (e) {
-        setError(e instanceof Error ? e.message : String(e));
-      } finally {
-        setBusy(false);
-      }
-    },
-    [loadProject, navigate],
-  );
+  async function refresh() {
+    const list = await listJobs();
+    setJobs(list);
+  }
 
-  const onDrop = useCallback(
-    (e: React.DragEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      setDrag(false);
-      const file = e.dataTransfer.files?.[0];
-      if (file) void handleFile(file);
-    },
-    [handleFile],
-  );
-
-  const resumeDraft = () => {
-    if (hydrate()) navigate({ to: "/workspace" });
-    else setError("No draft was recoverable.");
-  };
+  async function onDelete(id: string) {
+    await deleteJob(id);
+    setConfirmId(null);
+    void refresh();
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b bg-panel/60 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="size-7 rounded-sm bg-primary text-primary-foreground flex items-center justify-center font-mono text-[11px] font-semibold">
               RB
@@ -90,158 +54,130 @@ function HomePage() {
               v1 · local · no account
             </span>
           </div>
-          <a
-            href="https://docs.lovable.dev"
-            target="_blank"
-            rel="noreferrer"
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+          <Link
+            to="/new"
+            className="inline-flex items-center gap-2 rounded-sm bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:bg-primary/90 transition-colors"
           >
-            Docs
-          </a>
+            <FilePlus2 className="size-4" />
+            New job
+          </Link>
         </div>
       </header>
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-6 py-12">
-        <div className="grid md:grid-cols-[1.4fr_1fr] gap-10 items-start">
-          <section>
-            <p className="text-xs font-mono text-primary uppercase tracking-widest mb-3">
-              Distress survey · desk assembly
-            </p>
-            <h1 className="text-4xl md:text-5xl font-semibold tracking-tight leading-[1.05] mb-4">
-              Turn the field ZIP into a polished report.
-            </h1>
-            <p className="text-muted-foreground text-base mb-8 max-w-prose leading-relaxed">
-              Drop the export from the Field Reporter app or the Survey Sorter.
-              Photos, pins, and dictated descriptions are unpacked into editable
-              findings — with AI cleanup that keeps your voice. You stay in
-              control of every word.
-            </p>
+      <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-10">
+        <div className="mb-6">
+          <h1 className="text-2xl font-semibold tracking-tight mb-1">Jobs</h1>
+          <p className="text-sm text-muted-foreground">
+            Saved in this browser. Delete any job you no longer need.
+          </p>
+        </div>
 
-            <div
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDrag(true);
-              }}
-              onDragLeave={() => setDrag(false)}
-              onDrop={onDrop}
-              className={
-                "rounded-md border-2 border-dashed transition-colors p-10 text-center bg-canvas/70 " +
-                (drag ? "border-primary bg-accent/60" : "border-rule")
-              }
-            >
-              {busy ? (
-                <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                  <Loader2 className="size-6 animate-spin" />
-                  <p className="text-sm">Unpacking project…</p>
-                </div>
-              ) : (
-                <>
-                  <FileArchive className="size-10 mx-auto text-primary mb-3" />
-                  <p className="text-base font-medium mb-1">
-                    Drop your Field Reporter <span className="font-mono">.zip</span>
-                  </p>
-                  <p className="text-sm text-muted-foreground mb-5">
-                    or a saved <span className="font-mono">.report.json</span> project
-                  </p>
-                  <div className="flex items-center justify-center gap-2 flex-wrap">
+        {jobs === null ? (
+          <p className="text-sm text-muted-foreground">Loading…</p>
+        ) : jobs.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <ul className="divide-y border rounded-md bg-panel">
+            {jobs.map((j) => (
+              <li
+                key={j.id}
+                className="flex items-center gap-4 px-4 py-3 hover:bg-accent/40 transition-colors"
+              >
+                <FileArchive className="size-5 text-muted-foreground shrink-0" />
+                <button
+                  className="flex-1 min-w-0 text-left"
+                  onClick={() =>
+                    navigate({ to: "/workspace", search: { job: j.id } })
+                  }
+                >
+                  <div className="font-medium truncate">{j.name}</div>
+                  <div className="text-xs text-muted-foreground font-mono mt-0.5">
+                    {j.pinCount} pins · {j.photoCount} photos · updated{" "}
+                    {fmtDate(j.updatedAt)}
+                  </div>
+                </button>
+                <span className="text-xs font-mono inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border">
+                  {j.grokImported ? (
+                    <>
+                      <CircleCheck className="size-3 text-emerald-500" />
+                      Grok imported
+                    </>
+                  ) : (
+                    <>
+                      <CircleAlert className="size-3 text-amber-500" />
+                      Needs Grok CSV
+                    </>
+                  )}
+                </span>
+                {confirmId === j.id ? (
+                  <div className="flex items-center gap-1.5">
                     <button
-                      type="button"
-                      onClick={() => zipInput.current?.click()}
-                      className="inline-flex items-center gap-2 rounded-sm bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
+                      onClick={() => onDelete(j.id)}
+                      className="text-xs px-2 py-1 rounded-sm bg-destructive text-destructive-foreground"
                     >
-                      <FilePlus2 className="size-4" />
-                      Choose ZIP
+                      Delete
                     </button>
                     <button
-                      type="button"
-                      onClick={() => jsonInput.current?.click()}
-                      className="inline-flex items-center gap-2 rounded-sm border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent transition-colors"
+                      onClick={() => setConfirmId(null)}
+                      className="text-xs px-2 py-1 rounded-sm border"
                     >
-                      <FileJson className="size-4" />
-                      Open .report.json
+                      Cancel
                     </button>
                   </div>
-                  <input
-                    ref={zipInput}
-                    type="file"
-                    accept=".zip,application/zip"
-                    hidden
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) void handleFile(f);
-                    }}
-                  />
-                  <input
-                    ref={jsonInput}
-                    type="file"
-                    accept=".json,application/json"
-                    hidden
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) void handleFile(f);
-                    }}
-                  />
-                </>
-              )}
-            </div>
-
-            {error && (
-              <div className="mt-4 flex items-start gap-2 rounded-sm border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
-                <AlertTriangle className="size-4 mt-0.5 shrink-0" />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {hasDraft && !busy && (
-              <button
-                onClick={resumeDraft}
-                className="mt-4 text-sm text-primary hover:underline"
-              >
-                Resume last draft from this browser →
-              </button>
-            )}
-          </section>
-
-          <aside className="rounded-md border bg-panel p-6 text-sm">
-            <h2 className="font-semibold mb-3 text-foreground">
-              Expected ZIP contents
-            </h2>
-            <ul className="space-y-2 font-mono text-xs text-muted-foreground">
-              <li>
-                <span className="text-foreground">pins.csv</span> — Location, Type,
-                Description, Photo Count, Photo Numbers
+                ) : (
+                  <button
+                    onClick={() => setConfirmId(j.id)}
+                    className="text-muted-foreground hover:text-destructive p-1.5 rounded-sm"
+                    title="Delete job"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                )}
               </li>
-              <li>
-                <span className="text-foreground">plan.png</span> or{" "}
-                <span className="text-foreground">plan.pdf</span>
-              </li>
-              <li>
-                <span className="text-foreground">photo-01.jpg</span> …{" "}
-                <span className="text-foreground">photo-NN.jpg</span>
-              </li>
-            </ul>
-            <hr className="my-4 border-rule" />
-            <h3 className="font-semibold mb-2 text-foreground">What happens next</h3>
-            <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-              <li>Photos and pins unpacked in your browser.</li>
-              <li>One finding row generated per pin.</li>
-              <li>AI cleans each dictated description; raw stays one click away.</li>
-              <li>You edit, reorder, then copy-paste or save.</li>
-            </ol>
-            <p className="text-xs text-muted-foreground mt-4 leading-relaxed">
-              Nothing leaves your browser except the description text sent for AI
-              cleanup. Photos stay local.
-            </p>
-          </aside>
-        </div>
+            ))}
+          </ul>
+        )}
       </main>
 
       <footer className="border-t bg-panel/40">
-        <div className="max-w-6xl mx-auto px-6 py-4 text-xs text-muted-foreground flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-6 py-4 text-xs text-muted-foreground flex items-center justify-between">
           <span>Report Builder — sibling tool to Field Reporter & Survey Sorter</span>
           <span className="font-mono">{new Date().getFullYear()}</span>
         </div>
       </footer>
     </div>
   );
+}
+
+function EmptyState() {
+  return (
+    <div className="border-2 border-dashed border-rule rounded-md p-12 text-center bg-canvas/60">
+      <FileArchive className="size-10 mx-auto text-muted-foreground mb-3" />
+      <p className="font-medium mb-1">No saved jobs yet</p>
+      <p className="text-sm text-muted-foreground mb-5">
+        Start by dropping a Field Reporter ZIP.
+      </p>
+      <Link
+        to="/new"
+        className="inline-flex items-center gap-2 rounded-sm bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
+      >
+        <FilePlus2 className="size-4" />
+        New job
+      </Link>
+    </div>
+  );
+}
+
+function fmtDate(iso: string) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString([], {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return iso;
+  }
 }

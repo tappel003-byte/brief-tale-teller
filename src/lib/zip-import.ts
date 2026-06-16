@@ -145,6 +145,7 @@ export async function importZipFile(file: File): Promise<ImportResult> {
 
   const project: ReportProject = {
     v: 1,
+    id: cryptoRandomId(),
     name: deriveTitleFromFilename(file.name),
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
@@ -205,4 +206,11 @@ function arrayBufferToBase64(ab: ArrayBuffer): string {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
   }
   return btoa(binary);
+}
+
+function cryptoRandomId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `job-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
