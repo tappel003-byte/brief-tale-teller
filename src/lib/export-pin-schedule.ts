@@ -1,7 +1,9 @@
-// Render the pin schedule as a single JPEG of a 2-column table —
+// Render the pin schedule as a JPEG of the locked PIN | DESCRIPTION table —
 // LOCKED template, see mem://design/pin-schedule-template.
 //
-// PIN | DESCRIPTION (with photos inlined as "(Photos N–M)")
+// Each schedule panel is PIN | DESCRIPTION (with photos inlined as "(Photos N–M)").
+// The schedule can render as one vertical panel or split into two side-by-side
+// panels for fitting a tall portrait/right-column slide area.
 // Dark header bar, black bold 2-digit PINs, alternating grey/white stripes.
 // White background, natural width — no 11×17 forcing.
 
@@ -10,6 +12,8 @@ import type { Pin } from "./types";
 export interface PinScheduleOptions {
   /** Pixel width of the rendered table. */
   width?: number;
+  /** Number of side-by-side schedule panels. Each panel remains PIN | DESCRIPTION. */
+  scheduleColumns?: 1 | 2;
   quality?: number;
 }
 
@@ -25,14 +29,17 @@ export async function renderPinScheduleJpeg(
   opts: PinScheduleOptions = {},
 ): Promise<Blob> {
   const W = opts.width ?? 1800;
+  const scheduleColumns = opts.scheduleColumns === 2 ? 2 : 1;
   const quality = opts.quality ?? 0.92;
 
   // Layout (in px). Generous gutter between PIN and DESCRIPTION.
   const padX = 28;
-  const gutter = 54; // ~0.30" at 200dpi-ish
-  const pinColW = 130;
-  const descX = padX + pinColW + gutter;
-  const descW = W - descX - padX;
+  const panelGap = scheduleColumns === 2 ? 70 : 0;
+  const panelW = Math.floor((W - panelGap) / scheduleColumns);
+  const gutter = scheduleColumns === 2 ? 44 : 54; // ~0.22–0.30" at 200dpi-ish
+  const pinColW = scheduleColumns === 2 ? 96 : 130;
+  const descOffset = padX + pinColW + gutter;
+  const descW = panelW - descOffset - padX;
 
   const bodySize = 22;
   const pinSize = 28;
@@ -60,7 +67,13 @@ export async function renderPinScheduleJpeg(
     return { p, lines, height };
   });
 
-  const totalH = headerH + rows.reduce((a, r) => a + r.height, 0);
+  const rowsPerPanel = Math.ceil(rows.length / scheduleColumns);
+  const panels = Array.from({ length: scheduleColumns }, (_, i) =>
+    rows.slice(i * rowsPerPanel, (i + 1) * rowsPerPanel),
+  );
+  const totalH =
+    headerH +
+    Math.max(0, ...panels.map((panel) => panel.reduce((a, r) => a + r.height, 0)));
 
   const canvas = document.createElement("canvas");
   canvas.width = W;
@@ -71,41 +84,47 @@ export async function renderPinScheduleJpeg(
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, W, canvas.height);
 
-  // Header.
-  ctx.fillStyle = HEADER_BG;
-  ctx.fillRect(0, 0, W, headerH);
-  ctx.fillStyle = HEADER_FG;
-  ctx.textBaseline = "middle";
-  ctx.font = headerFont;
-  ctx.fillText("PIN", padX, headerH / 2);
-  ctx.fillText("DESCRIPTION", descX, headerH / 2);
+  for (let panelIndex = 0; panelIndex < panels.length; panelIndex++) {
+    const panelRows = panels[panelIndex];
+    const panelX = panelIndex * (panelW + panelGap);
+    const descX = panelX + descOffset;
 
-  // Rows.
-  let y = headerH;
-  for (let i = 0; i < rows.length; i++) {
-    const r = rows[i];
-    // Stripe (every other row).
-    if (i % 2 === 0) {
-      ctx.fillStyle = STRIPE;
-      ctx.fillRect(0, y, W, r.height);
+    // Header.
+    ctx.fillStyle = HEADER_BG;
+    ctx.fillRect(panelX, 0, panelW, headerH);
+    ctx.fillStyle = HEADER_FG;
+    ctx.textBaseline = "middle";
+    ctx.font = headerFont;
+    ctx.fillText("PIN", panelX + padX, headerH / 2);
+    ctx.fillText("DESCRIPTION", descX, headerH / 2);
+
+    // Rows.
+    let y = headerH;
+    for (let i = 0; i < panelRows.length; i++) {
+      const r = panelRows[i];
+      // Stripe (every other row).
+      if (i % 2 === 0) {
+        ctx.fillStyle = STRIPE;
+        ctx.fillRect(panelX, y, panelW, r.height);
+      }
+
+      // PIN (black bold, 2-digit).
+      ctx.fillStyle = PIN_COLOR;
+      ctx.font = pinFont;
+      ctx.textBaseline = "top";
+      ctx.fillText(pad2(r.p.location), panelX + padX, y + rowPadY);
+
+      // Description (wrapped, vertically padded).
+      ctx.fillStyle = BODY;
+      ctx.font = bodyFont;
+      let ly = y + rowPadY;
+      for (const ln of r.lines) {
+        ctx.fillText(ln, descX, ly);
+        ly += lineH;
+      }
+
+      y += r.height;
     }
-
-    // PIN (black bold, 2-digit).
-    ctx.fillStyle = PIN_COLOR;
-    ctx.font = pinFont;
-    ctx.textBaseline = "top";
-    ctx.fillText(pad2(r.p.location), padX, y + rowPadY);
-
-    // Description (wrapped, vertically padded).
-    ctx.fillStyle = BODY;
-    ctx.font = bodyFont;
-    let ly = y + rowPadY;
-    for (const ln of r.lines) {
-      ctx.fillText(ln, descX, ly);
-      ly += lineH;
-    }
-
-    y += r.height;
   }
 
   return await new Promise<Blob>((resolve, reject) => {
