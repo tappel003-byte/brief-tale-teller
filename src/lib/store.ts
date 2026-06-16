@@ -10,6 +10,8 @@ import type {
   FindingsSection,
   FreeTextSection,
 } from "./types";
+import { saveJob } from "./jobs-db";
+import { applyGrokRows, type GrokRow } from "./grok-csv";
 
 const LS_KEY = "report-builder.draft.v1";
 
@@ -37,6 +39,7 @@ interface Actions {
   removePhotoFromPin: (pinId: string, photoIdx: number) => void;
   setObjectUrls: (urls: Record<string, string>) => void;
   hydrateFromDraft: () => boolean;
+  applyGrok: (rows: GrokRow[]) => void;
 }
 
 export const useReportStore = create<State & Actions>((set, get) => ({
