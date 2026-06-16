@@ -209,10 +209,20 @@ function ExportCard({
     : 0;
 
   const coverSection = project.sections.find((s) => s.kind === "cover") as
-    | { planFilename?: string }
+    | import("@/lib/types").CoverSection
     | undefined;
+  const updateSection = useReportStore((s) => s.updateSection);
   const mapFilename = coverSection?.planFilename;
   const mapAsset = mapFilename ? project.assets[mapFilename] : undefined;
+
+  // All non-photo assets — candidates for the map/plan.
+  const mapCandidates = useMemo(
+    () =>
+      Object.keys(project.assets).filter(
+        (fn) => !/^photo-\d+\.(jpe?g|png|webp)$/i.test(fn),
+      ),
+    [project.assets],
+  );
 
   // Auto-preview whenever settings change (debounced).
   useEffect(() => {
