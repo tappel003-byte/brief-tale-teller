@@ -410,6 +410,39 @@ function ExportCard({
         <div>photo plates: {plateCount} JPEG{plateCount === 1 ? "" : "s"} ({photoItems.length} photos)</div>
       </div>
 
+      {/* Preview Pane */}
+      <div className="border-t pt-4 mb-4">
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+          Preview
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {previewUrls.schedule ? (
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Pin Schedule</div>
+              <img
+                src={previewUrls.schedule}
+                alt="Pin schedule preview"
+                className="w-full rounded-sm border bg-white"
+              />
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground italic">No pins to preview</div>
+          )}
+          {previewUrls.plate ? (
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Photo Plate (page 1)</div>
+              <img
+                src={previewUrls.plate}
+                alt="Photo plate preview"
+                className="w-full rounded-sm border bg-white"
+              />
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground italic">No photos to preview</div>
+          )}
+        </div>
+      </div>
+
       <button
         onClick={onExport}
         disabled={busy || (pins.length === 0 && photoItems.length === 0)}
