@@ -40,6 +40,7 @@ interface Actions {
   setObjectUrls: (urls: Record<string, string>) => void;
   hydrateFromDraft: () => boolean;
   applyGrok: (rows: GrokRow[]) => void;
+  loadJobById: (id: string) => Promise<boolean>;
 }
 
 export const useReportStore = create<State & Actions>((set, get) => ({
@@ -249,6 +250,29 @@ export const useReportStore = create<State & Actions>((set, get) => ({
       return true;
     } catch (e) {
       console.warn("Failed to hydrate draft", e);
+      return false;
+    }
+  },
+
+  loadJobById: async (id: string) => {
+    try {
+      const { loadJob } = await import("./jobs-db");
+      const proj = await loadJob(id);
+      if (!proj) return false;
+      // Revoke old URLs.
+      const oldUrls = get().objectUrls;
+      Object.values(oldUrls).forEach((u) => {
+        try { URL.revokeObjectURL(u); } catch { /* noop */ }
+      });
+      const urls: Record<string, string> = {};
+      for (const [filename, asset] of Object.entries(proj.assets)) {
+        const blob = base64ToBlob(asset.base64, asset.mime);
+        urls[filename] = URL.createObjectURL(blob);
+      }
+      set({ project: proj, objectUrls: urls, selectedPinId: null });
+      return true;
+    } catch (e) {
+      console.warn("loadJobById failed", e);
       return false;
     }
   },
