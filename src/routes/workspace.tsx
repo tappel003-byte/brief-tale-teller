@@ -191,6 +191,10 @@ function ExportCard({
   const [captionSize, setCaptionSize] = useState<number>(20);
   const [maxLines, setMaxLines] = useState<number>(4);
   const [busy, setBusy] = useState(false);
+  const [previewUrls, setPreviewUrls] = useState<{
+    schedule?: string;
+    plate?: string;
+  }>({});
 
   const effectivePerPage = perPage || autoPerPage(photoItems.length);
   const plateCount = photoItems.length
@@ -202,6 +206,56 @@ function ExportCard({
     | undefined;
   const mapFilename = coverSection?.planFilename;
   const mapAsset = mapFilename ? project.assets[mapFilename] : undefined;
+
+  // Auto-preview whenever settings change (debounced).
+  useEffect(() => {
+    if (!pins.length && !photoItems.length) return;
+    const t = setTimeout(() => {
+      void renderPreview();
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scheduleColumns, perPage, fontFamily, labelSize, captionSize, maxLines]);
+
+  async function renderPreview() {
+    try {
+      const sortedPins = [...pins].sort(
+        (a, b) => (parseInt(a.location) || 9999) - (parseInt(b.location) || 9999),
+      );
+      const next: typeof previewUrls = {};
+      if (sortedPins.length) {
+        const blob = await renderPinScheduleJpeg(sortedPins, {
+          scheduleColumns,
+          width: 900,
+          quality: 0.6,
+        });
+        next.schedule = URL.createObjectURL(blob);
+      }
+      if (photoItems.length) {
+        const plates = await renderPhotoPlates(photoItems, {
+          perPage: perPage || undefined,
+          fontFamily,
+          labelSize,
+          captionSize,
+          maxCaptionLines: maxLines,
+          width: 1400,
+          height: 800,
+          quality: 0.6,
+        });
+        if (plates[0]) next.plate = URL.createObjectURL(plates[0].blob);
+      }
+      setPreviewUrls((prev) => {
+        // revoke old URLs to avoid memory leaks
+        if (prev.schedule && prev.schedule !== next.schedule)
+          URL.revokeObjectURL(prev.schedule);
+        if (prev.plate && prev.plate !== next.plate)
+          URL.revokeObjectURL(prev.plate);
+        return next;
+      });
+    } catch {
+      /* preview failures are silent */
+    }
+  }
 
   async function onExport() {
     setBusy(true);
