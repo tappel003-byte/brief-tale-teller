@@ -1,0 +1,270 @@
+// Zustand store for the editable report project.
+
+import { create } from "zustand";
+import type {
+  Pin,
+  ReportProject,
+  ReportSection,
+  PhotoRef,
+  CoverSection,
+  FindingsSection,
+  FreeTextSection,
+} from "./types";
+
+const LS_KEY = "report-builder.draft.v1";
+
+interface State {
+  project: ReportProject | null;
+  selectedPinId: string | null;
+  /** Object-URL cache: filename -> blob: URL. Built on import; cleared on close. */
+  objectUrls: Record<string, string>;
+  busy: boolean;
+}
+
+interface Actions {
+  loadProject: (p: ReportProject, urls: Record<string, string>) => void;
+  closeProject: () => void;
+  selectPin: (id: string | null) => void;
+  updatePin: (id: string, patch: Partial<Pin>) => void;
+  setCleanedDescription: (id: string, text: string, userEdited: boolean) => void;
+  revertCleaned: (id: string) => void;
+  updateSection: (id: string, patch: Partial<ReportSection>) => void;
+  moveSection: (id: string, dir: -1 | 1) => void;
+  removeSection: (id: string) => void;
+  addSection: (section: ReportSection, afterId?: string) => void;
+  movePinInFindings: (sectionId: string, pinId: string, dir: -1 | 1) => void;
+  reorderPhoto: (pinId: string, fromIdx: number, toIdx: number) => void;
+  removePhotoFromPin: (pinId: string, photoIdx: number) => void;
+  setObjectUrls: (urls: Record<string, string>) => void;
+  hydrateFromDraft: () => boolean;
+}
+
+export const useReportStore = create<State & Actions>((set, get) => ({
+  project: null,
+  selectedPinId: null,
+  objectUrls: {},
+  busy: false,
+
+  loadProject: (project, objectUrls) => {
+    set({ project, objectUrls, selectedPinId: null });
+    persistDraft(project);
+  },
+
+  closeProject: () => {
+    const urls = get().objectUrls;
+    Object.values(urls).forEach((u) => {
+      try {
+        URL.revokeObjectURL(u);
+      } catch {
+        /* noop */
+      }
+    });
+    set({ project: null, objectUrls: {}, selectedPinId: null });
+    try {
+      localStorage.removeItem(LS_KEY);
+    } catch {
+      /* noop */
+    }
+  },
+
+  selectPin: (id) => set({ selectedPinId: id }),
+
+  updatePin: (id, patch) =>
+    set((s) => {
+      if (!s.project) return s;
+      const pin = s.project.pins[id];
+      if (!pin) return s;
+      const next: ReportProject = {
+        ...s.project,
+        updatedAt: new Date().toISOString(),
+        pins: { ...s.project.pins, [id]: { ...pin, ...patch } },
+      };
+      persistDraft(next);
+      return { project: next };
+    }),
+
+  setCleanedDescription: (id, text, userEdited) =>
+    get().updatePin(id, { cleanedDescription: text, userEdited }),
+
+  revertCleaned: (id) =>
+    set((s) => {
+      if (!s.project) return s;
+      const pin = s.project.pins[id];
+      if (!pin) return s;
+      const updated: Pin = {
+        ...pin,
+        cleanedDescription: pin.rawDescription,
+        userEdited: false,
+      };
+      const next: ReportProject = {
+        ...s.project,
+        updatedAt: new Date().toISOString(),
+        pins: { ...s.project.pins, [id]: updated },
+      };
+      persistDraft(next);
+      return { project: next };
+    }),
+
+  updateSection: (id, patch) =>
+    set((s) => {
+      if (!s.project) return s;
+      const next: ReportProject = {
+        ...s.project,
+        updatedAt: new Date().toISOString(),
+        sections: s.project.sections.map((sec) =>
+          sec.id === id ? ({ ...sec, ...patch } as ReportSection) : sec,
+        ),
+      };
+      persistDraft(next);
+      return { project: next };
+    }),
+
+  moveSection: (id, dir) =>
+    set((s) => {
+      if (!s.project) return s;
+      const arr = [...s.project.sections];
+      const idx = arr.findIndex((sec) => sec.id === id);
+      const target = idx + dir;
+      if (idx < 0 || target < 0 || target >= arr.length) return s;
+      [arr[idx], arr[target]] = [arr[target], arr[idx]];
+      const next: ReportProject = {
+        ...s.project,
+        updatedAt: new Date().toISOString(),
+        sections: arr,
+      };
+      persistDraft(next);
+      return { project: next };
+    }),
+
+  removeSection: (id) =>
+    set((s) => {
+      if (!s.project) return s;
+      const next: ReportProject = {
+        ...s.project,
+        updatedAt: new Date().toISOString(),
+        sections: s.project.sections.filter((sec) => sec.id !== id),
+      };
+      persistDraft(next);
+      return { project: next };
+    }),
+
+  addSection: (section, afterId) =>
+    set((s) => {
+      if (!s.project) return s;
+      const arr = [...s.project.sections];
+      const idx = afterId ? arr.findIndex((sec) => sec.id === afterId) : -1;
+      if (idx >= 0) arr.splice(idx + 1, 0, section);
+      else arr.push(section);
+      const next: ReportProject = {
+        ...s.project,
+        updatedAt: new Date().toISOString(),
+        sections: arr,
+      };
+      persistDraft(next);
+      return { project: next };
+    }),
+
+  movePinInFindings: (sectionId, pinId, dir) =>
+    set((s) => {
+      if (!s.project) return s;
+      const sec = s.project.sections.find((x) => x.id === sectionId);
+      if (!sec || sec.kind !== "findings") return s;
+      const arr = [...sec.pinIds];
+      const idx = arr.indexOf(pinId);
+      const target = idx + dir;
+      if (idx < 0 || target < 0 || target >= arr.length) return s;
+      [arr[idx], arr[target]] = [arr[target], arr[idx]];
+      const updated: FindingsSection = { ...sec, pinIds: arr };
+      const next: ReportProject = {
+        ...s.project,
+        updatedAt: new Date().toISOString(),
+        sections: s.project.sections.map((x) =>
+          x.id === sectionId ? updated : x,
+        ),
+      };
+      persistDraft(next);
+      return { project: next };
+    }),
+
+  reorderPhoto: (pinId, fromIdx, toIdx) =>
+    set((s) => {
+      if (!s.project) return s;
+      const pin = s.project.pins[pinId];
+      if (!pin) return s;
+      const photos = [...pin.photos];
+      if (
+        fromIdx < 0 ||
+        toIdx < 0 ||
+        fromIdx >= photos.length ||
+        toIdx >= photos.length
+      )
+        return s;
+      const [m] = photos.splice(fromIdx, 1);
+      photos.splice(toIdx, 0, m);
+      const next: ReportProject = {
+        ...s.project,
+        updatedAt: new Date().toISOString(),
+        pins: { ...s.project.pins, [pinId]: { ...pin, photos } },
+      };
+      persistDraft(next);
+      return { project: next };
+    }),
+
+  removePhotoFromPin: (pinId, photoIdx) =>
+    set((s) => {
+      if (!s.project) return s;
+      const pin = s.project.pins[pinId];
+      if (!pin) return s;
+      const photos = pin.photos.filter((_, i) => i !== photoIdx);
+      const next: ReportProject = {
+        ...s.project,
+        updatedAt: new Date().toISOString(),
+        pins: { ...s.project.pins, [pinId]: { ...pin, photos } },
+      };
+      persistDraft(next);
+      return { project: next };
+    }),
+
+  setObjectUrls: (urls) => set({ objectUrls: urls }),
+
+  hydrateFromDraft: () => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return false;
+      const parsed = JSON.parse(raw) as ReportProject;
+      if (parsed?.v !== 1 || !parsed.assets) return false;
+      const urls: Record<string, string> = {};
+      for (const [filename, asset] of Object.entries(parsed.assets)) {
+        const blob = base64ToBlob(asset.base64, asset.mime);
+        urls[filename] = URL.createObjectURL(blob);
+      }
+      set({ project: parsed, objectUrls: urls });
+      return true;
+    } catch (e) {
+      console.warn("Failed to hydrate draft", e);
+      return false;
+    }
+  },
+}));
+
+export type { CoverSection, FreeTextSection, FindingsSection, PhotoRef };
+
+// --- helpers ---
+
+function persistDraft(project: ReportProject) {
+  if (typeof window === "undefined") return;
+  try {
+    // Best-effort autosave. Falls back silently if quota exceeded.
+    localStorage.setItem(LS_KEY, JSON.stringify(project));
+  } catch (e) {
+    console.warn("Draft autosave failed (quota?)", e);
+  }
+}
+
+function base64ToBlob(b64: string, mime: string): Blob {
+  const binary = atob(b64);
+  const len = binary.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
