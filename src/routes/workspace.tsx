@@ -329,10 +329,10 @@ function ExportCard({
             }}
             className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
           >
-            <option value={1}>1 column → 1 JPEG</option>
-            <option value={2}>2 columns → 2 JPEGs</option>
-            <option value={3}>3 columns → 3 JPEGs</option>
-            <option value={4}>4 columns → 4 JPEGs</option>
+            <option value={1}>1 column</option>
+            <option value={2}>2 columns</option>
+            <option value={3}>3 columns</option>
+            <option value={4}>4 columns</option>
           </select>
         </div>
 
