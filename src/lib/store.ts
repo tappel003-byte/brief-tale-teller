@@ -248,6 +248,14 @@ export const useReportStore = create<State & Actions>((set, get) => ({
       return false;
     }
   },
+
+  applyGrok: (rows) =>
+    set((s) => {
+      if (!s.project) return s;
+      const next = applyGrokRows(s.project, rows);
+      persistDraft(next);
+      return { project: next };
+    }),
 }));
 
 export type { CoverSection, FreeTextSection, FindingsSection, PhotoRef };
@@ -262,6 +270,24 @@ function persistDraft(project: ReportProject) {
   } catch (e) {
     console.warn("Draft autosave failed (quota?)", e);
   }
+  // Also write to IndexedDB so the job appears on the jobs list.
+  // Debounced to avoid hammering on rapid edits.
+  scheduleJobSave(project);
+}
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
+let pendingSave: ReportProject | null = null;
+function scheduleJobSave(project: ReportProject) {
+  pendingSave = project;
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    const p = pendingSave;
+    pendingSave = null;
+    if (p) {
+      saveJob(p).catch((e) => console.warn("IDB save failed", e));
+    }
+  }, 400);
 }
 
 function base64ToBlob(b64: string, mime: string): Blob {
