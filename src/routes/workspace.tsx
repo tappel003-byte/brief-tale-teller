@@ -367,7 +367,7 @@ function ExportCard({
 
       <div className="text-xs text-muted-foreground font-mono mb-3 space-y-0.5">
         <div>map: {mapAsset ? mapFilename : <span className="text-amber-600">not found in import</span>}</div>
-        <div>pin schedule: {scheduleColumns === 1 ? "1 JPEG" : "2 JPEGs"}</div>
+        <div>pin schedule: {scheduleColumns} JPEG{scheduleColumns === 1 ? "" : "s"}</div>
         <div>photo plates: {plateCount} JPEG{plateCount === 1 ? "" : "s"} ({photoItems.length} photos)</div>
       </div>
 
