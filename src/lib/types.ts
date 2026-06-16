@@ -24,6 +24,8 @@ export interface Pin {
   cleanedDescription: string;
   /** Whether the user has edited the cleaned text by hand. */
   userEdited: boolean;
+  /** Room / area, populated by Grok cleanup pass. */
+  roomArea?: string;
   /** "Photo Count" hint from the CSV (informational). */
   photoCount: number;
   photos: PhotoRef[];
@@ -79,6 +81,8 @@ export interface PhotoAsset {
 export interface ReportProject {
   /** Schema version; bump when shape changes. */
   v: 1;
+  /** Stable job id (uuid). Used as the IndexedDB key. */
+  id: string;
   name: string;
   createdAt: string;
   updatedAt: string;
@@ -86,4 +90,6 @@ export interface ReportProject {
   sections: ReportSection[];
   /** filename -> asset bytes (photos + plan). */
   assets: Record<string, PhotoAsset>;
+  /** True once a Grok-cleaned CSV has been imported. */
+  grokImported?: boolean;
 }
