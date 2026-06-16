@@ -268,7 +268,11 @@ function ExportCard({
     setBusy(true);
     try {
       const zip = new JSZip();
-      const base = slug(project.name);
+      const cover = project.sections.find((s) => s.kind === "cover") as
+        | import("@/lib/types").CoverSection
+        | undefined;
+      const base = slug(cover?.address || project.name);
+      const zipName = `${base}-report-pieces.zip`;
 
       // 1. Map — original file, unchanged.
       if (mapAsset) {
@@ -300,7 +304,7 @@ function ExportCard({
       }
 
       const zipBlob = await zip.generateAsync({ type: "blob" });
-      downloadBlob(zipBlob, `${base}-export.zip`);
+      downloadBlob(zipBlob, zipName);
       toast.success("Export complete");
     } catch (e) {
       toast.error("Export failed", {
