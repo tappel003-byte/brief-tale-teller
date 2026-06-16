@@ -34,8 +34,17 @@ export interface PlateResult {
   total: number;
 }
 
+// LOCKED canvas dimensions — every photo-plate JPEG MUST come out at this
+// exact pixel size with the exact same outer white border so the user can
+// snap them to a fixed PowerPoint grid. Do not derive padding from a percent
+// of W/H; use fixed pixel margins so the visible white border never drifts.
 const DEFAULT_W = 2800;
 const DEFAULT_H = 1600;
+const FIXED_PAD_X = 80; // px — constant outer white border, left/right
+const FIXED_PAD_Y = 80; // px — constant outer white border, top/bottom
+const LOCKED_PER_PAGE = 10;
+const LOCKED_COLS = 5;
+const LOCKED_ROWS = 2;
 
 export async function renderPhotoPlates(
   photos: PhotoPlateItem[],
@@ -43,11 +52,13 @@ export async function renderPhotoPlates(
 ): Promise<PlateResult[]> {
   if (!photos.length) return [];
 
-  const W = opts.width ?? DEFAULT_W;
-  const H = opts.height ?? DEFAULT_H;
-  const perPage = opts.perPage ?? pickPerPage(photos.length);
-  const cols = opts.cols ?? pickCols(perPage);
-  const rows = Math.ceil(perPage / cols);
+  // Dimensions and grid are LOCKED so every plate has identical size + border.
+  // We intentionally ignore opts.width/height/perPage/cols here.
+  const W = DEFAULT_W;
+  const H = DEFAULT_H;
+  const perPage = LOCKED_PER_PAGE;
+  const cols = LOCKED_COLS;
+  const rows = LOCKED_ROWS;
 
   const loaded = await Promise.all(photos.map(loadImg));
 
@@ -81,18 +92,6 @@ export async function renderPhotoPlates(
     results.push({ blob, index: pageIdx, total: pages.length });
   }
   return results;
-}
-
-function pickPerPage(total: number): number {
-  if (total <= 6) return Math.min(total, 6);
-  if (total <= 10) return total;
-  return 10;
-}
-function pickCols(perPage: number): number {
-  if (perPage <= 3) return perPage;
-  if (perPage <= 6) return 3;
-  if (perPage <= 8) return 4;
-  return 5;
 }
 
 interface PageOpts {
