@@ -49,8 +49,12 @@ export const useReportStore = create<State & Actions>((set, get) => ({
   busy: false,
 
   loadProject: (project, objectUrls) => {
-    set({ project, objectUrls, selectedPinId: null });
-    persistDraft(project);
+    // Back-fill id for legacy projects (.report.json from older versions).
+    const safe: ReportProject = project.id
+      ? project
+      : { ...project, id: randomId() };
+    set({ project: safe, objectUrls, selectedPinId: null });
+    persistDraft(safe);
   },
 
   closeProject: () => {
@@ -296,4 +300,11 @@ function base64ToBlob(b64: string, mime: string): Blob {
   const bytes = new Uint8Array(len);
   for (let i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
   return new Blob([bytes], { type: mime });
+}
+
+function randomId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `job-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 }
