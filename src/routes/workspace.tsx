@@ -191,6 +191,10 @@ function ExportCard({
   const [captionSize, setCaptionSize] = useState<number>(20);
   const [maxLines, setMaxLines] = useState<number>(4);
   const [busy, setBusy] = useState(false);
+  const [previewUrls, setPreviewUrls] = useState<{
+    schedule?: string;
+    plate?: string;
+  }>({});
 
   const effectivePerPage = perPage || autoPerPage(photoItems.length);
   const plateCount = photoItems.length
@@ -202,6 +206,56 @@ function ExportCard({
     | undefined;
   const mapFilename = coverSection?.planFilename;
   const mapAsset = mapFilename ? project.assets[mapFilename] : undefined;
+
+  // Auto-preview whenever settings change (debounced).
+  useEffect(() => {
+    if (!pins.length && !photoItems.length) return;
+    const t = setTimeout(() => {
+      void renderPreview();
+    }, 300);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scheduleColumns, perPage, fontFamily, labelSize, captionSize, maxLines]);
+
+  async function renderPreview() {
+    try {
+      const sortedPins = [...pins].sort(
+        (a, b) => (parseInt(a.location) || 9999) - (parseInt(b.location) || 9999),
+      );
+      const next: typeof previewUrls = {};
+      if (sortedPins.length) {
+        const blob = await renderPinScheduleJpeg(sortedPins, {
+          scheduleColumns,
+          width: 900,
+          quality: 0.6,
+        });
+        next.schedule = URL.createObjectURL(blob);
+      }
+      if (photoItems.length) {
+        const plates = await renderPhotoPlates(photoItems, {
+          perPage: perPage || undefined,
+          fontFamily,
+          labelSize,
+          captionSize,
+          maxCaptionLines: maxLines,
+          width: 1400,
+          height: 800,
+          quality: 0.6,
+        });
+        if (plates[0]) next.plate = URL.createObjectURL(plates[0].blob);
+      }
+      setPreviewUrls((prev) => {
+        // revoke old URLs to avoid memory leaks
+        if (prev.schedule && prev.schedule !== next.schedule)
+          URL.revokeObjectURL(prev.schedule);
+        if (prev.plate && prev.plate !== next.plate)
+          URL.revokeObjectURL(prev.plate);
+        return next;
+      });
+    } catch {
+      /* preview failures are silent */
+    }
+  }
 
   async function onExport() {
     setBusy(true);
@@ -275,10 +329,10 @@ function ExportCard({
             }}
             className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
           >
-            <option value={1}>1 column → 1 JPEG</option>
-            <option value={2}>2 columns → 2 JPEGs</option>
-            <option value={3}>3 columns → 3 JPEGs</option>
-            <option value={4}>4 columns → 4 JPEGs</option>
+            <option value={1}>1 column</option>
+            <option value={2}>2 columns</option>
+            <option value={3}>3 columns</option>
+            <option value={4}>4 columns</option>
           </select>
         </div>
 
@@ -354,6 +408,39 @@ function ExportCard({
         <div>map: {mapAsset ? mapFilename : <span className="text-amber-600">not found in import</span>}</div>
         <div>pin schedule: 1 JPEG ({scheduleColumns} column{scheduleColumns === 1 ? "" : "s"})</div>
         <div>photo plates: {plateCount} JPEG{plateCount === 1 ? "" : "s"} ({photoItems.length} photos)</div>
+      </div>
+
+      {/* Preview Pane */}
+      <div className="border-t pt-4 mb-4">
+        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+          Preview
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {previewUrls.schedule ? (
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Pin Schedule</div>
+              <img
+                src={previewUrls.schedule}
+                alt="Pin schedule preview"
+                className="w-full rounded-sm border bg-white"
+              />
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground italic">No pins to preview</div>
+          )}
+          {previewUrls.plate ? (
+            <div>
+              <div className="text-xs text-muted-foreground mb-1">Photo Plate (page 1)</div>
+              <img
+                src={previewUrls.plate}
+                alt="Photo plate preview"
+                className="w-full rounded-sm border bg-white"
+              />
+            </div>
+          ) : (
+            <div className="text-xs text-muted-foreground italic">No photos to preview</div>
+          )}
+        </div>
       </div>
 
       <button
