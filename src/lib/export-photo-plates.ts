@@ -120,10 +120,12 @@ async function renderPage(
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, o.W, o.H);
 
-  const padX = Math.round(o.W * 0.025);
-  const padY = Math.round(o.H * 0.03);
-  const gutterX = Math.round(o.W * 0.018);
-  const gutterY = Math.round(o.H * 0.045);
+  // Fixed-pixel margins — never percent-based. This is the white outline that
+  // must be identical on every exported plate so they snap to a PowerPoint grid.
+  const padX = FIXED_PAD_X;
+  const padY = FIXED_PAD_Y;
+  const gutterX = 50;
+  const gutterY = 70;
 
   const cellW = (o.W - padX * 2 - gutterX * (o.cols - 1)) / o.cols;
   const cellH = (o.H - padY * 2 - gutterY * (o.rows - 1)) / o.rows;
