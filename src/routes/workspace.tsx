@@ -284,13 +284,16 @@ function ExportCard({
           <label className="block text-sm mb-1">Schedule layout</label>
           <select
             value={scheduleColumns}
-            onChange={(e) =>
-              setScheduleColumns(parseInt(e.target.value, 10) === 2 ? 2 : 1)
-            }
+            onChange={(e) => {
+              const v = parseInt(e.target.value, 10);
+              setScheduleColumns((v === 2 || v === 3 || v === 4) ? v : 1);
+            }}
             className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
           >
             <option value={1}>1 column → 1 JPEG</option>
             <option value={2}>2 columns → 2 JPEGs</option>
+            <option value={3}>3 columns → 3 JPEGs</option>
+            <option value={4}>4 columns → 4 JPEGs</option>
           </select>
         </div>
 
