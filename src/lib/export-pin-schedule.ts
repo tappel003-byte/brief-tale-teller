@@ -1,146 +1,111 @@
-// Render the pin schedule as a single JPEG of a table — sized to its
-// natural width/height. No page chrome, no forced 11×17.
+// Render the pin schedule as a single JPEG of a 2-column table —
+// LOCKED template, see mem://design/pin-schedule-template.
+//
+// PIN | DESCRIPTION (with photos inlined as "(Photos N–M)")
+// Dark header bar, black bold 2-digit PINs, alternating grey/white stripes.
+// White background, natural width — no 11×17 forcing.
 
 import type { Pin } from "./types";
 
 export interface PinScheduleOptions {
-  includeRoomArea?: boolean;
   /** Pixel width of the rendered table. */
   width?: number;
   quality?: number;
 }
 
+// Locked palette.
+const HEADER_BG = "#141414";
+const HEADER_FG = "#ffffff";
+const STRIPE = "#eef0f3";
+const BODY = "#1f2937";
+const PIN_COLOR = "#000000";
+
 export async function renderPinScheduleJpeg(
   pins: Pin[],
   opts: PinScheduleOptions = {},
 ): Promise<Blob> {
-  const includeRoomArea = opts.includeRoomArea ?? true;
   const W = opts.width ?? 1800;
   const quality = opts.quality ?? 0.92;
 
-  const columns: { key: "pin" | "room" | "desc" | "photos"; label: string; w: number }[] = includeRoomArea
-    ? [
-        { key: "pin", label: "Pin", w: 80 },
-        { key: "room", label: "Room / Area", w: 320 },
-        { key: "desc", label: "Description", w: W - 80 - 320 - 220 },
-        { key: "photos", label: "Photos", w: 220 },
-      ]
-    : [
-        { key: "pin", label: "Pin", w: 80 },
-        { key: "desc", label: "Description", w: W - 80 - 220 },
-        { key: "photos", label: "Photos", w: 220 },
-      ];
+  // Layout (in px). Generous gutter between PIN and DESCRIPTION.
+  const padX = 28;
+  const gutter = 54; // ~0.30" at 200dpi-ish
+  const pinColW = 130;
+  const descX = padX + pinColW + gutter;
+  const descW = W - descX - padX;
+
+  const bodySize = 22;
+  const pinSize = 28;
+  const headerSize = 20;
+  const lineH = Math.round(bodySize * 1.4);
+  const rowPadY = 16;
+  const headerH = 56;
+
+  const bodyFont = `${bodySize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif`;
+  const pinFont = `700 ${pinSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif`;
+  const headerFont = `700 ${headerSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif`;
 
   const sorted = [...pins].sort(
     (a, b) => parseLoc(a.location) - parseLoc(b.location),
   );
 
-  const padX = 16;
-  const padY = 14;
-  const bodyFontSize = 20;
-  const headerFontSize = 22;
-  const lineH = bodyFontSize * 1.35;
-  const bodyFont = `${bodyFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif`;
-  const headerFont = `600 ${headerFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif`;
-
-  // Measurement canvas.
+  // Measurement context.
   const meas = document.createElement("canvas").getContext("2d")!;
-
-  function cellValue(p: Pin, key: typeof columns[number]["key"]): string {
-    switch (key) {
-      case "pin":
-        return p.location || "";
-      case "room":
-        return p.roomArea || "";
-      case "desc":
-        return p.cleanedDescription || p.rawDescription || "";
-      case "photos":
-        return p.photos.map((ph) => ph.n).join(", ");
-    }
-  }
-
-  // Pre-wrap every cell to compute row heights.
   meas.font = bodyFont;
+
   const rows = sorted.map((p) => {
-    let maxLines = 1;
-    const wrapped = columns.map((c) => {
-      const text = cellValue(p, c.key);
-      const lines = wrap(meas, text, c.w - padX * 2);
-      if (lines.length > maxLines) maxLines = lines.length;
-      return lines;
-    });
-    return { p, wrapped, height: Math.max(lineH * maxLines + padY * 2, 56) };
+    const desc = buildDescription(p);
+    const lines = wrap(meas, desc, descW);
+    const height = Math.max(lines.length * lineH + rowPadY * 2, 60);
+    return { p, lines, height };
   });
 
-  const headerH = headerFontSize * 1.3 + padY * 2;
   const totalH = headerH + rows.reduce((a, r) => a + r.height, 0);
 
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = Math.round(totalH);
   const ctx = canvas.getContext("2d")!;
+
+  // White background.
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, W, canvas.height);
 
-  // Header background.
-  ctx.fillStyle = "#f3f4f6";
+  // Header.
+  ctx.fillStyle = HEADER_BG;
   ctx.fillRect(0, 0, W, headerH);
-
-  ctx.fillStyle = "#111111";
+  ctx.fillStyle = HEADER_FG;
   ctx.textBaseline = "middle";
   ctx.font = headerFont;
-  let x = 0;
-  for (const c of columns) {
-    ctx.fillText(c.label, x + padX, headerH / 2);
-    x += c.w;
-  }
+  ctx.fillText("PIN", padX, headerH / 2);
+  ctx.fillText("DESCRIPTION", descX, headerH / 2);
 
   // Rows.
   let y = headerH;
-  ctx.font = bodyFont;
-  for (const r of rows) {
-    let cx = 0;
-    for (let i = 0; i < columns.length; i++) {
-      const c = columns[i];
-      const lines = r.wrapped[i];
-      let ly = y + padY;
-      ctx.fillStyle = "#111111";
-      ctx.textBaseline = "top";
-      for (const ln of lines) {
-        ctx.fillText(ln, cx + padX, ly);
-        ly += lineH;
-      }
-      cx += c.w;
+  for (let i = 0; i < rows.length; i++) {
+    const r = rows[i];
+    // Stripe (every other row).
+    if (i % 2 === 0) {
+      ctx.fillStyle = STRIPE;
+      ctx.fillRect(0, y, W, r.height);
     }
-    y += r.height;
-  }
 
-  // Grid lines.
-  ctx.strokeStyle = "#d1d5db";
-  ctx.lineWidth = 1;
-  // Outer border.
-  ctx.strokeRect(0.5, 0.5, W - 1, canvas.height - 1);
-  // Vertical column dividers.
-  let vx = 0;
-  for (let i = 0; i < columns.length - 1; i++) {
-    vx += columns[i].w;
-    ctx.beginPath();
-    ctx.moveTo(vx + 0.5, 0);
-    ctx.lineTo(vx + 0.5, canvas.height);
-    ctx.stroke();
-  }
-  // Horizontal: under header and between rows.
-  let ry = headerH;
-  ctx.beginPath();
-  ctx.moveTo(0, ry + 0.5);
-  ctx.lineTo(W, ry + 0.5);
-  ctx.stroke();
-  for (const r of rows) {
-    ry += r.height;
-    ctx.beginPath();
-    ctx.moveTo(0, ry + 0.5);
-    ctx.lineTo(W, ry + 0.5);
-    ctx.stroke();
+    // PIN (black bold, 2-digit).
+    ctx.fillStyle = PIN_COLOR;
+    ctx.font = pinFont;
+    ctx.textBaseline = "top";
+    ctx.fillText(pad2(r.p.location), padX, y + rowPadY);
+
+    // Description (wrapped, vertically padded).
+    ctx.fillStyle = BODY;
+    ctx.font = bodyFont;
+    let ly = y + rowPadY;
+    for (const ln of r.lines) {
+      ctx.fillText(ln, descX, ly);
+      ly += lineH;
+    }
+
+    y += r.height;
   }
 
   return await new Promise<Blob>((resolve, reject) => {
@@ -150,6 +115,42 @@ export async function renderPinScheduleJpeg(
       quality,
     );
   });
+}
+
+function buildDescription(p: Pin): string {
+  const text = (p.cleanedDescription || p.rawDescription || "").trim();
+  const photoStr = inlinePhotos(p.photos.map((x) => x.n));
+  if (!photoStr) return text;
+  // Don't double-append if Grok already put "(Photos …)" in there.
+  if (/\(photos?\s/i.test(text)) return text;
+  return text ? `${text} (${photoStr})` : `(${photoStr})`;
+}
+
+function inlinePhotos(nums: number[]): string {
+  if (!nums.length) return "";
+  const sorted = [...new Set(nums)].sort((a, b) => a - b);
+  // Compress consecutive runs: 7,8,9 -> "Photos 7–9"; 7,8 -> "Photos 7–8"
+  const runs: string[] = [];
+  let start = sorted[0];
+  let prev = sorted[0];
+  for (let i = 1; i <= sorted.length; i++) {
+    const cur = sorted[i];
+    if (cur === prev + 1) {
+      prev = cur;
+      continue;
+    }
+    runs.push(start === prev ? `${start}` : `${start}–${prev}`);
+    start = cur;
+    prev = cur;
+  }
+  const label = sorted.length === 1 ? "Photo" : "Photos";
+  return `${label} ${runs.join(", ")}`;
+}
+
+function pad2(s: string): string {
+  const n = parseInt(s, 10);
+  if (!Number.isFinite(n)) return s;
+  return n < 10 ? `0${n}` : String(n);
 }
 
 function wrap(ctx: CanvasRenderingContext2D, text: string, maxW: number): string[] {
@@ -163,7 +164,6 @@ function wrap(ctx: CanvasRenderingContext2D, text: string, maxW: number): string
       line = test;
     } else {
       if (line) lines.push(line);
-      // word longer than column? hard-break.
       if (ctx.measureText(w).width > maxW) {
         let chunk = "";
         for (const ch of w) {
