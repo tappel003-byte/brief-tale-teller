@@ -182,7 +182,7 @@ function ExportCard({
   pins: import("@/lib/types").Pin[];
   photoItems: PhotoPlateItem[];
 }) {
-  const [scheduleColumns, setScheduleColumns] = useState<1 | 2>(1);
+  const [scheduleColumns, setScheduleColumns] = useState<1 | 2 | 3 | 4>(1);
   const [perPage, setPerPage] = useState<number>(0); // 0 = auto
   const [fontFamily, setFontFamily] = useState<string>(
     `Calibri, "Carlito", Arial, sans-serif`,
@@ -215,7 +215,7 @@ function ExportCard({
         zip.file(`${base}-map.${ext}`, base64ToBlob(mapAsset.base64, mapAsset.mime));
       }
 
-      // 2. Pin schedule — 1 jpg if 1 column, 2 jpgs if 2 columns (split pins).
+      // 2. Pin schedule — N jpgs, one per column (pins split evenly across columns).
       const sortedPins = [...pins].sort(
         (a, b) => (parseInt(a.location) || 9999) - (parseInt(b.location) || 9999),
       );
@@ -223,15 +223,18 @@ function ExportCard({
         const blob = await renderPinScheduleJpeg(sortedPins, { scheduleColumns: 1 });
         zip.file(`${base}-pin-schedule.jpg`, blob);
       } else {
-        const half = Math.ceil(sortedPins.length / 2);
-        const left = sortedPins.slice(0, half);
-        const right = sortedPins.slice(half);
-        const [b1, b2] = await Promise.all([
-          renderPinScheduleJpeg(left, { scheduleColumns: 1 }),
-          renderPinScheduleJpeg(right, { scheduleColumns: 1 }),
-        ]);
-        zip.file(`${base}-pin-schedule-01.jpg`, b1);
-        zip.file(`${base}-pin-schedule-02.jpg`, b2);
+        const chunkSize = Math.ceil(sortedPins.length / scheduleColumns);
+        const chunks: typeof sortedPins[] = [];
+        for (let i = 0; i < scheduleColumns; i++) {
+          chunks.push(sortedPins.slice(i * chunkSize, (i + 1) * chunkSize));
+        }
+        const blobs = await Promise.all(
+          chunks.map((c) => renderPinScheduleJpeg(c, { scheduleColumns: 1 })),
+        );
+        blobs.forEach((b, i) => {
+          const n = String(i + 1).padStart(2, "0");
+          zip.file(`${base}-pin-schedule-${n}.jpg`, b);
+        });
       }
 
       // 3. Photo plates — all pages.
@@ -281,13 +284,16 @@ function ExportCard({
           <label className="block text-sm mb-1">Schedule layout</label>
           <select
             value={scheduleColumns}
-            onChange={(e) =>
-              setScheduleColumns(parseInt(e.target.value, 10) === 2 ? 2 : 1)
-            }
+            onChange={(e) => {
+              const v = parseInt(e.target.value, 10);
+              setScheduleColumns((v === 2 || v === 3 || v === 4) ? v : 1);
+            }}
             className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
           >
             <option value={1}>1 column → 1 JPEG</option>
             <option value={2}>2 columns → 2 JPEGs</option>
+            <option value={3}>3 columns → 3 JPEGs</option>
+            <option value={4}>4 columns → 4 JPEGs</option>
           </select>
         </div>
 
@@ -361,7 +367,7 @@ function ExportCard({
 
       <div className="text-xs text-muted-foreground font-mono mb-3 space-y-0.5">
         <div>map: {mapAsset ? mapFilename : <span className="text-amber-600">not found in import</span>}</div>
-        <div>pin schedule: {scheduleColumns === 1 ? "1 JPEG" : "2 JPEGs"}</div>
+        <div>pin schedule: {scheduleColumns} JPEG{scheduleColumns === 1 ? "" : "s"}</div>
         <div>photo plates: {plateCount} JPEG{plateCount === 1 ? "" : "s"} ({photoItems.length} photos)</div>
       </div>
 
