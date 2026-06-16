@@ -388,10 +388,13 @@ function base64ToBlob(b64: string, mime: string): Blob {
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return new Blob([bytes], { type: mime });
 }
+
+function autoPerPage(total: number): number {
   if (total <= 6) return Math.max(total, 1);
   if (total <= 10) return total;
   return 10;
 }
+
 
 function slug(s: string): string {
   return s
