@@ -1,26 +1,31 @@
-// Render photo plates as JPEG(s) sized to drop into the empty area of the
-// 11×17 landscape template (between "Picture/Damage Locations" and the
-// Sandia Geo logo). Pure white background, photo grid, bold "Photo NN" +
-// caption — matches the reference the user provided.
+// Render photo plates as JPEG(s) with a flexible layout.
+// Calibri by default; label, caption, gaps, and max wrap lines are all
+// configurable from the UI so we don't have to be rigid about cell sizing.
 
 export interface PhotoPlateItem {
   n: number;
   caption: string;
-  /** Already-resolved blob: or data: URL for the image. */
   src: string;
 }
 
 export interface PhotoPlateOptions {
-  /** Output JPEG width in pixels. */
   width?: number;
-  /** Output JPEG height in pixels. */
   height?: number;
-  /** Photos per page. If omitted, picked from photo count + aspect. */
   perPage?: number;
-  /** Override grid columns. */
   cols?: number;
-  /** JPEG quality 0..1 */
   quality?: number;
+  /** Font family stack. Defaults to Calibri. */
+  fontFamily?: string;
+  /** Bold "Photo NN" label size in px. Default 22. */
+  labelSize?: number;
+  /** Caption size in px. Default 20. */
+  captionSize?: number;
+  /** Gap (px) between photo bottom and label. Default 10. */
+  photoLabelGap?: number;
+  /** Gap (px) between label and caption. Default 6. */
+  labelCaptionGap?: number;
+  /** Max wrapped caption lines per cell. Default 4. */
+  maxCaptionLines?: number;
 }
 
 export interface PlateResult {
@@ -29,9 +34,6 @@ export interface PlateResult {
   total: number;
 }
 
-// The empty area on the 11×17 template between the title block and the
-// Sandia Geo logo. ~14" wide × ~8" tall at the image's working ratio.
-// We export at 200dpi-ish so it stays crisp when dropped into the slide.
 const DEFAULT_W = 2800;
 const DEFAULT_H = 1600;
 
@@ -47,7 +49,6 @@ export async function renderPhotoPlates(
   const cols = opts.cols ?? pickCols(perPage);
   const rows = Math.ceil(perPage / cols);
 
-  // Pre-load every image once.
   const loaded = await Promise.all(photos.map(loadImg));
 
   const pages: PhotoPlateItem[][] = [];
@@ -55,13 +56,27 @@ export async function renderPhotoPlates(
     pages.push(photos.slice(i, i + perPage));
   }
 
+  const pageOpts: PageOpts = {
+    W,
+    H,
+    cols,
+    rows,
+    quality: opts.quality ?? 0.9,
+    fontFamily: opts.fontFamily ?? `Calibri, "Carlito", Arial, sans-serif`,
+    labelSize: opts.labelSize ?? 22,
+    captionSize: opts.captionSize ?? 20,
+    photoLabelGap: opts.photoLabelGap ?? 10,
+    labelCaptionGap: opts.labelCaptionGap ?? 6,
+    maxCaptionLines: opts.maxCaptionLines ?? 4,
+  };
+
   const results: PlateResult[] = [];
   for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
     const page = pages[pageIdx];
     const blob = await renderPage(
       page,
       page.map((p) => loaded[photos.indexOf(p)]),
-      { W, H, cols, rows, quality: opts.quality ?? 0.9 },
+      pageOpts,
     );
     results.push({ blob, index: pageIdx, total: pages.length });
   }
@@ -69,7 +84,6 @@ export async function renderPhotoPlates(
 }
 
 function pickPerPage(total: number): number {
-  // Try to keep tiles big enough to read.  Capped at 10/page.
   if (total <= 6) return Math.min(total, 6);
   if (total <= 10) return total;
   return 10;
@@ -87,6 +101,12 @@ interface PageOpts {
   cols: number;
   rows: number;
   quality: number;
+  fontFamily: string;
+  labelSize: number;
+  captionSize: number;
+  photoLabelGap: number;
+  labelCaptionGap: number;
+  maxCaptionLines: number;
 }
 
 async function renderPage(
@@ -109,14 +129,15 @@ async function renderPage(
   const cellW = (o.W - padX * 2 - gutterX * (o.cols - 1)) / o.cols;
   const cellH = (o.H - padY * 2 - gutterY * (o.rows - 1)) / o.rows;
 
-  // Reserve ~22% of the cell height for the label + caption block.
-  const textBlockH = Math.round(cellH * 0.22);
-  const photoH = cellH - textBlockH - 12;
+  const labelSize = o.labelSize;
+  const captionSize = o.captionSize;
+  const captionLineH = Math.round(captionSize * 1.25);
+  const textBlockH =
+    labelSize + o.labelCaptionGap + captionLineH * o.maxCaptionLines;
+  const photoH = Math.max(0, cellH - textBlockH - o.photoLabelGap);
 
-  const labelSize = Math.round(cellH * 0.052);
-  const captionSize = Math.round(cellH * 0.046);
-  const labelFont = `bold ${labelSize}px Calibri, "Carlito", Arial, sans-serif`;
-  const captionFont = `${captionSize}px Calibri, "Carlito", Arial, sans-serif`;
+  const labelFont = `bold ${labelSize}px ${o.fontFamily}`;
+  const captionFont = `${captionSize}px ${o.fontFamily}`;
 
   for (let i = 0; i < items.length; i++) {
     const row = Math.floor(i / o.cols);
@@ -126,19 +147,15 @@ async function renderPage(
     const img = imgs[i];
     const item = items[i];
 
-    // Photo, contained within (cellW × photoH), top-left anchored.
     if (img && img.naturalWidth) {
       const scale = Math.min(cellW / img.naturalWidth, photoH / img.naturalHeight);
       const drawW = img.naturalWidth * scale;
       const drawH = img.naturalHeight * scale;
-      // Left-align, top-align (matches the user's reference).
-      const dx = x;
-      const dy = y;
-      ctx.drawImage(img, dx, dy, drawW, drawH);
+      ctx.drawImage(img, x, y, drawW, drawH);
     }
 
-    // Text block: starts just below the reserved photo area.
-    const textTop = y + photoH + 14;
+    // Text block: left-aligned with photo, constrained to cellW (no overlap into next column).
+    const textTop = y + photoH + o.photoLabelGap;
     ctx.fillStyle = "#111111";
     ctx.textBaseline = "top";
     ctx.font = labelFont;
@@ -150,10 +167,10 @@ async function renderPage(
       ctx,
       item.caption || "",
       x,
-      textTop + labelSize + 8,
+      textTop + labelSize + o.labelCaptionGap,
       cellW,
-      Math.round(captionSize * 1.25),
-      2,
+      captionLineH,
+      o.maxCaptionLines,
     );
   }
 
@@ -179,7 +196,7 @@ function wrapText(
   lineH: number,
   maxLines: number,
 ) {
-  const words = text.split(/\s+/);
+  const words = text.split(/\s+/).filter(Boolean);
   const lines: string[] = [];
   let line = "";
   for (const w of words) {
@@ -189,26 +206,21 @@ function wrapText(
     } else {
       if (line) lines.push(line);
       line = w;
-      if (lines.length === maxLines - 1) break;
+      if (lines.length >= maxLines) break;
     }
   }
   if (line && lines.length < maxLines) lines.push(line);
-  // If we ran out of room, ellipsize the last line.
-  if (lines.length === maxLines) {
-    const remaining = words.slice(
-      lines.join(" ").split(/\s+/).length,
-    );
-    if (remaining.length) {
-      let last = lines[maxLines - 1];
-      while (
-        ctx.measureText(last + "…").width > maxW &&
-        last.length > 0
-      ) {
-        last = last.slice(0, -1);
-      }
-      lines[maxLines - 1] = last + "…";
+
+  // Ellipsize last line if we ran out of room.
+  const consumed = lines.join(" ").split(/\s+/).filter(Boolean).length;
+  if (consumed < words.length && lines.length) {
+    let last = lines[lines.length - 1];
+    while (ctx.measureText(last + "…").width > maxW && last.length > 0) {
+      last = last.slice(0, -1);
     }
+    lines[lines.length - 1] = last + "…";
   }
+
   for (let i = 0; i < lines.length; i++) {
     ctx.fillText(lines[i], x, y + i * lineH);
   }
@@ -219,7 +231,7 @@ function loadImg(p: PhotoPlateItem): Promise<HTMLImageElement> {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
-    img.onerror = () => resolve(img); // resolve empty; cell will just show text
+    img.onerror = () => resolve(img);
     img.src = p.src;
   });
 }

@@ -244,6 +244,12 @@ function PhotoPlatesCard({
   items: PhotoPlateItem[];
 }) {
   const [perPage, setPerPage] = useState<number>(0); // 0 = auto
+  const [fontFamily, setFontFamily] = useState<string>(
+    `Calibri, "Carlito", Arial, sans-serif`,
+  );
+  const [labelSize, setLabelSize] = useState<number>(22);
+  const [captionSize, setCaptionSize] = useState<number>(20);
+  const [maxLines, setMaxLines] = useState<number>(4);
   const [busy, setBusy] = useState(false);
 
   const effectivePerPage = perPage || autoPerPage(items.length);
@@ -256,6 +262,10 @@ function PhotoPlatesCard({
     try {
       const plates = await renderPhotoPlates(items, {
         perPage: perPage || undefined,
+        fontFamily,
+        labelSize,
+        captionSize,
+        maxCaptionLines: maxLines,
       });
       if (plates.length === 1) {
         downloadBlob(plates[0].blob, `${slug(jobName)}-photo-plate.jpg`);
@@ -287,13 +297,14 @@ function PhotoPlatesCard({
         <h3 className="font-medium">Photo Plates</h3>
       </div>
       <p className="text-xs text-muted-foreground mb-3">
-        White-background JPEG(s) of the photo grid with bold <span className="font-mono">Photo NN</span> labels and Grok captions. Drops into the empty area on your 11×17 template.
+        White-background JPEG(s) of the photo grid. Text is left-aligned with each photo and wraps to fit — adjust the knobs below to taste.
       </p>
+
       <label className="block text-sm mb-1">Photos per page</label>
       <select
         value={perPage}
         onChange={(e) => setPerPage(parseInt(e.target.value))}
-        className="text-sm rounded-sm border border-input bg-background px-2 py-1 mb-4"
+        className="text-sm rounded-sm border border-input bg-background px-2 py-1 mb-3 w-full"
       >
         <option value={0}>Auto ({autoPerPage(items.length)})</option>
         <option value={6}>6 (3×2)</option>
@@ -301,6 +312,55 @@ function PhotoPlatesCard({
         <option value={10}>10 (5×2)</option>
         <option value={12}>12 (4×3)</option>
       </select>
+
+      <label className="block text-sm mb-1">Font</label>
+      <select
+        value={fontFamily}
+        onChange={(e) => setFontFamily(e.target.value)}
+        className="text-sm rounded-sm border border-input bg-background px-2 py-1 mb-3 w-full"
+      >
+        <option value={`Calibri, "Carlito", Arial, sans-serif`}>Calibri</option>
+        <option value={`Arial, sans-serif`}>Arial</option>
+        <option value={`"Helvetica Neue", Helvetica, Arial, sans-serif`}>Helvetica</option>
+        <option value={`Georgia, "Times New Roman", serif`}>Georgia</option>
+      </select>
+
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        <div>
+          <label className="block text-xs mb-1">Label px</label>
+          <input
+            type="number"
+            min={10}
+            max={48}
+            value={labelSize}
+            onChange={(e) => setLabelSize(parseInt(e.target.value) || 22)}
+            className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+          />
+        </div>
+        <div>
+          <label className="block text-xs mb-1">Caption px</label>
+          <input
+            type="number"
+            min={8}
+            max={40}
+            value={captionSize}
+            onChange={(e) => setCaptionSize(parseInt(e.target.value) || 20)}
+            className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+          />
+        </div>
+        <div>
+          <label className="block text-xs mb-1">Max lines</label>
+          <input
+            type="number"
+            min={1}
+            max={8}
+            value={maxLines}
+            onChange={(e) => setMaxLines(parseInt(e.target.value) || 4)}
+            className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+          />
+        </div>
+      </div>
+
       <div className="text-xs text-muted-foreground font-mono mb-3">
         {items.length} photos → {pageCount} page{pageCount === 1 ? "" : "s"}
       </div>
