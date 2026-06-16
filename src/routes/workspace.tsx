@@ -161,13 +161,11 @@ function JobPage() {
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
             Step 2 · Export
           </h2>
-          <div className="grid gap-4 md:grid-cols-2">
-            <PinScheduleCard project={project} pins={pins} />
-            <PhotoPlatesCard
-              jobName={project.name}
-              items={photoItems}
-            />
-          </div>
+          <ExportCard
+            project={project}
+            pins={pins}
+            photoItems={photoItems}
+          />
         </section>
       </main>
 
@@ -176,73 +174,16 @@ function JobPage() {
   );
 }
 
-function PinScheduleCard({
+function ExportCard({
   project,
   pins,
+  photoItems,
 }: {
-  project: { name: string };
-  pins: ReturnType<typeof Object.values<import("@/lib/types").Pin>>;
+  project: import("@/lib/types").ReportProject;
+  pins: import("@/lib/types").Pin[];
+  photoItems: PhotoPlateItem[];
 }) {
-  const [busy, setBusy] = useState(false);
   const [scheduleColumns, setScheduleColumns] = useState<1 | 2>(1);
-
-  async function onExport() {
-    setBusy(true);
-    try {
-      const blob = await renderPinScheduleJpeg(pins, { scheduleColumns });
-      downloadBlob(blob, `${slug(project.name)}-pin-schedule.jpg`);
-      toast.success("Pin schedule exported");
-    } catch (e) {
-      toast.error("Export failed", {
-        description: e instanceof Error ? e.message : String(e),
-      });
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="rounded-md border bg-panel p-4">
-      <div className="flex items-center gap-2 mb-2">
-        <TableIcon className="size-4 text-primary" />
-        <h3 className="font-medium">Pin Schedule</h3>
-      </div>
-      <p className="text-xs text-muted-foreground mb-4">
-        PIN / DESCRIPTION with photos inline. Choose one schedule panel or split into two side-by-side panels for portrait/right-column placement.
-      </p>
-      <label className="block text-sm mb-1">Schedule layout</label>
-      <select
-        value={scheduleColumns}
-        onChange={(e) => setScheduleColumns(parseInt(e.target.value, 10) === 2 ? 2 : 1)}
-        className="text-sm rounded-sm border border-input bg-background px-2 py-1 mb-4"
-      >
-        <option value={1}>1 column of pins</option>
-        <option value={2}>2 columns of pins</option>
-      </select>
-
-      <button
-        onClick={onExport}
-        disabled={busy || pins.length === 0}
-        className="inline-flex items-center gap-2 rounded-sm bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-      >
-        {busy ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <Download className="size-4" />
-        )}
-        Export JPEG
-      </button>
-    </div>
-  );
-}
-
-function PhotoPlatesCard({
-  jobName,
-  items,
-}: {
-  jobName: string;
-  items: PhotoPlateItem[];
-}) {
   const [perPage, setPerPage] = useState<number>(0); // 0 = auto
   const [fontFamily, setFontFamily] = useState<string>(
     `Calibri, "Carlito", Arial, sans-serif`,
@@ -252,35 +193,67 @@ function PhotoPlatesCard({
   const [maxLines, setMaxLines] = useState<number>(4);
   const [busy, setBusy] = useState(false);
 
-  const effectivePerPage = perPage || autoPerPage(items.length);
-  const pageCount = items.length
-    ? Math.ceil(items.length / effectivePerPage)
+  const effectivePerPage = perPage || autoPerPage(photoItems.length);
+  const plateCount = photoItems.length
+    ? Math.ceil(photoItems.length / effectivePerPage)
     : 0;
+
+  const coverSection = project.sections.find((s) => s.kind === "cover") as
+    | { planFilename?: string }
+    | undefined;
+  const mapFilename = coverSection?.planFilename;
+  const mapAsset = mapFilename ? project.assets[mapFilename] : undefined;
 
   async function onExport() {
     setBusy(true);
     try {
-      const plates = await renderPhotoPlates(items, {
+      const zip = new JSZip();
+      const base = slug(project.name);
+
+      // 1. Map — original file, unchanged.
+      if (mapAsset) {
+        const ext = (mapFilename!.split(".").pop() || "bin").toLowerCase();
+        zip.file(`${base}-map.${ext}`, base64ToBlob(mapAsset.base64, mapAsset.mime));
+      }
+
+      // 2. Pin schedule — 1 jpg if 1 column, 2 jpgs if 2 columns (split pins).
+      const sortedPins = [...pins].sort(
+        (a, b) => (parseInt(a.location) || 9999) - (parseInt(b.location) || 9999),
+      );
+      if (scheduleColumns === 1) {
+        const blob = await renderPinScheduleJpeg(sortedPins, { scheduleColumns: 1 });
+        zip.file(`${base}-pin-schedule.jpg`, blob);
+      } else {
+        const half = Math.ceil(sortedPins.length / 2);
+        const left = sortedPins.slice(0, half);
+        const right = sortedPins.slice(half);
+        const [b1, b2] = await Promise.all([
+          renderPinScheduleJpeg(left, { scheduleColumns: 1 }),
+          renderPinScheduleJpeg(right, { scheduleColumns: 1 }),
+        ]);
+        zip.file(`${base}-pin-schedule-01.jpg`, b1);
+        zip.file(`${base}-pin-schedule-02.jpg`, b2);
+      }
+
+      // 3. Photo plates — all pages.
+      const plates = await renderPhotoPlates(photoItems, {
         perPage: perPage || undefined,
         fontFamily,
         labelSize,
         captionSize,
         maxCaptionLines: maxLines,
       });
-      if (plates.length === 1) {
-        downloadBlob(plates[0].blob, `${slug(jobName)}-photo-plate.jpg`);
-      } else {
-        const zip = new JSZip();
-        for (const p of plates) {
-          zip.file(
-            `${slug(jobName)}-plate-${String(p.index + 1).padStart(2, "0")}.jpg`,
-            p.blob,
-          );
-        }
-        const zipBlob = await zip.generateAsync({ type: "blob" });
-        downloadBlob(zipBlob, `${slug(jobName)}-photo-plates.zip`);
+      for (const p of plates) {
+        const name =
+          plates.length === 1
+            ? `${base}-photo-plate.jpg`
+            : `${base}-photo-plate-${String(p.index + 1).padStart(2, "0")}.jpg`;
+        zip.file(name, p.blob);
       }
-      toast.success(`Exported ${plates.length} plate${plates.length === 1 ? "" : "s"}`);
+
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      downloadBlob(zipBlob, `${base}-export.zip`);
+      toast.success("Export complete");
     } catch (e) {
       toast.error("Export failed", {
         description: e instanceof Error ? e.message : String(e),
@@ -293,39 +266,65 @@ function PhotoPlatesCard({
   return (
     <div className="rounded-md border bg-panel p-4">
       <div className="flex items-center gap-2 mb-2">
-        <ImageIcon className="size-4 text-primary" />
-        <h3 className="font-medium">Photo Plates</h3>
+        <Download className="size-4 text-primary" />
+        <h3 className="font-medium">Job Export</h3>
       </div>
-      <p className="text-xs text-muted-foreground mb-3">
-        White-background JPEG(s) of the photo grid. Text is left-aligned with each photo and wraps to fit — adjust the knobs below to taste.
+      <p className="text-xs text-muted-foreground mb-4">
+        One zip with the map, pin schedule(s), and all photo plates.
+        Drop the folder into your 11×17 template.
       </p>
 
-      <label className="block text-sm mb-1">Photos per page</label>
-      <select
-        value={perPage}
-        onChange={(e) => setPerPage(parseInt(e.target.value))}
-        className="text-sm rounded-sm border border-input bg-background px-2 py-1 mb-3 w-full"
-      >
-        <option value={0}>Auto ({autoPerPage(items.length)})</option>
-        <option value={6}>6 (3×2)</option>
-        <option value={8}>8 (4×2)</option>
-        <option value={10}>10 (5×2)</option>
-        <option value={12}>12 (4×3)</option>
-      </select>
+      <div className="grid gap-4 md:grid-cols-2 mb-4">
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+            Pin Schedule
+          </div>
+          <label className="block text-sm mb-1">Schedule layout</label>
+          <select
+            value={scheduleColumns}
+            onChange={(e) =>
+              setScheduleColumns(parseInt(e.target.value, 10) === 2 ? 2 : 1)
+            }
+            className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+          >
+            <option value={1}>1 column → 1 JPEG</option>
+            <option value={2}>2 columns → 2 JPEGs</option>
+          </select>
+        </div>
 
-      <label className="block text-sm mb-1">Font</label>
-      <select
-        value={fontFamily}
-        onChange={(e) => setFontFamily(e.target.value)}
-        className="text-sm rounded-sm border border-input bg-background px-2 py-1 mb-3 w-full"
-      >
-        <option value={`Calibri, "Carlito", Arial, sans-serif`}>Calibri</option>
-        <option value={`Arial, sans-serif`}>Arial</option>
-        <option value={`"Helvetica Neue", Helvetica, Arial, sans-serif`}>Helvetica</option>
-        <option value={`Georgia, "Times New Roman", serif`}>Georgia</option>
-      </select>
+        <div>
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+            Photo Plates
+          </div>
+          <label className="block text-sm mb-1">Photos per page</label>
+          <select
+            value={perPage}
+            onChange={(e) => setPerPage(parseInt(e.target.value))}
+            className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+          >
+            <option value={0}>Auto ({autoPerPage(photoItems.length)})</option>
+            <option value={6}>6 (3×2)</option>
+            <option value={8}>8 (4×2)</option>
+            <option value={10}>10 (5×2)</option>
+            <option value={12}>12 (4×3)</option>
+          </select>
+        </div>
+      </div>
 
-      <div className="grid grid-cols-3 gap-2 mb-3">
+      <div className="grid gap-3 md:grid-cols-4 mb-4">
+        <div className="md:col-span-1">
+          <label className="block text-xs mb-1">Font</label>
+          <select
+            value={fontFamily}
+            onChange={(e) => setFontFamily(e.target.value)}
+            className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+          >
+            <option value={`Calibri, "Carlito", Arial, sans-serif`}>Calibri</option>
+            <option value={`Arial, sans-serif`}>Arial</option>
+            <option value={`"Helvetica Neue", Helvetica, Arial, sans-serif`}>Helvetica</option>
+            <option value={`Georgia, "Times New Roman", serif`}>Georgia</option>
+          </select>
+        </div>
         <div>
           <label className="block text-xs mb-1">Label px</label>
           <input
@@ -361,12 +360,15 @@ function PhotoPlatesCard({
         </div>
       </div>
 
-      <div className="text-xs text-muted-foreground font-mono mb-3">
-        {items.length} photos → {pageCount} page{pageCount === 1 ? "" : "s"}
+      <div className="text-xs text-muted-foreground font-mono mb-3 space-y-0.5">
+        <div>map: {mapAsset ? mapFilename : <span className="text-amber-600">not found in import</span>}</div>
+        <div>pin schedule: {scheduleColumns === 1 ? "1 JPEG" : "2 JPEGs"}</div>
+        <div>photo plates: {plateCount} JPEG{plateCount === 1 ? "" : "s"} ({photoItems.length} photos)</div>
       </div>
+
       <button
         onClick={onExport}
-        disabled={busy || items.length === 0}
+        disabled={busy || (pins.length === 0 && photoItems.length === 0)}
         className="inline-flex items-center gap-2 rounded-sm bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
       >
         {busy ? (
@@ -374,13 +376,18 @@ function PhotoPlatesCard({
         ) : (
           <Download className="size-4" />
         )}
-        {pageCount > 1 ? "Export ZIP" : "Export JPEG"}
+        Export ZIP
       </button>
     </div>
   );
 }
 
-function autoPerPage(total: number): number {
+function base64ToBlob(b64: string, mime: string): Blob {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new Blob([bytes], { type: mime });
+}
   if (total <= 6) return Math.max(total, 1);
   if (total <= 10) return total;
   return 10;
