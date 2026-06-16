@@ -182,7 +182,7 @@ function ExportCard({
   pins: import("@/lib/types").Pin[];
   photoItems: PhotoPlateItem[];
 }) {
-  const [scheduleColumns, setScheduleColumns] = useState<1 | 2>(1);
+  const [scheduleColumns, setScheduleColumns] = useState<1 | 2 | 3 | 4>(1);
   const [perPage, setPerPage] = useState<number>(0); // 0 = auto
   const [fontFamily, setFontFamily] = useState<string>(
     `Calibri, "Carlito", Arial, sans-serif`,
