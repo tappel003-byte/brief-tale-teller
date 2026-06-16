@@ -497,3 +497,151 @@ function downloadBlob(blob: Blob, filename: string) {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+function PinEditor({
+  pins,
+  objectUrls,
+}: {
+  pins: import("@/lib/types").Pin[];
+  objectUrls: Record<string, string>;
+}) {
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const setCleanedDescription = useReportStore((s) => s.setCleanedDescription);
+  const revertCleaned = useReportStore((s) => s.revertCleaned);
+  const reorderPhoto = useReportStore((s) => s.reorderPhoto);
+  const removePhotoFromPin = useReportStore((s) => s.removePhotoFromPin);
+
+  const sorted = [...pins].sort(
+    (a, b) => (parseInt(a.location) || 9999) - (parseInt(b.location) || 9999),
+  );
+
+  return (
+    <div className="rounded-md border bg-panel overflow-hidden">
+      <div className="max-h-[60vh] overflow-auto thin-scroll">
+        {sorted.map((pin) => {
+          const isOpen = expanded.has(pin.id);
+          return (
+            <div key={pin.id} className="border-b last:border-0">
+              <button
+                onClick={() =>
+                  setExpanded((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(pin.id)) next.delete(pin.id);
+                    else next.add(pin.id);
+                    return next;
+                  })
+                }
+                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent/30 transition-colors"
+              >
+                <span className="font-mono text-sm font-semibold w-8 shrink-0">
+                  {pin.location}
+                </span>
+                <span className="text-sm flex-1 truncate text-left">
+                  {pin.cleanedDescription || pin.rawDescription || "No description"}
+                </span>
+                <span className="text-xs text-muted-foreground font-mono shrink-0">
+                  {pin.photos.length} photo{pin.photos.length === 1 ? "" : "s"}
+                </span>
+              </button>
+
+              {isOpen && (
+                <div className="px-4 pb-4 bg-canvas/40">
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">
+                        Description
+                      </label>
+                      <textarea
+                        className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1.5 min-h-[80px] resize-y focus:outline-none focus:ring-1 focus:ring-ring"
+                        value={pin.cleanedDescription || ""}
+                        onChange={(e) =>
+                          setCleanedDescription(pin.id, e.target.value, true)
+                        }
+                        placeholder="Edit description..."
+                      />
+                      <div className="flex items-center gap-2 mt-1.5">
+                        <button
+                          onClick={() => revertCleaned(pin.id)}
+                          className="text-xs text-muted-foreground hover:text-foreground underline"
+                        >
+                          Revert to raw
+                        </button>
+                        {pin.userEdited && (
+                          <span className="text-[10px] text-emerald-600 font-mono">
+                            edited
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">
+                        Photos
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {pin.photos.map((ph, idx) => {
+                          const src = objectUrls[ph.filename];
+                          return (
+                            <div
+                              key={ph.filename}
+                              className="relative group w-16 h-16 rounded-sm border bg-white overflow-hidden"
+                            >
+                              {src ? (
+                                <img
+                                  src={src}
+                                  alt={`Photo ${ph.n}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">
+                                  {ph.n}
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                                {idx > 0 && (
+                                  <button
+                                    onClick={() =>
+                                      reorderPhoto(pin.id, idx, idx - 1)
+                                    }
+                                    className="text-white text-xs hover:text-primary"
+                                    title="Move left"
+                                  >
+                                    ←
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() =>
+                                    removePhotoFromPin(pin.id, idx)
+                                  }
+                                  className="text-white text-xs hover:text-destructive"
+                                  title="Remove"
+                                >
+                                  ×
+                                </button>
+                                {idx < pin.photos.length - 1 && (
+                                  <button
+                                    onClick={() =>
+                                      reorderPhoto(pin.id, idx, idx + 1)
+                                    }
+                                    className="text-white text-xs hover:text-primary"
+                                    title="Move right"
+                                  >
+                                    →
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
