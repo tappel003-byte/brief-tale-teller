@@ -156,6 +156,13 @@ function JobPage() {
           </button>
         </section>
 
+        <section className="mb-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+            Pins & Descriptions
+          </h2>
+          <PinEditor pins={pins} objectUrls={objectUrls} />
+        </section>
+
         <section>
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
             Step 2 · Export
