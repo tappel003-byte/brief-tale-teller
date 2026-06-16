@@ -7,11 +7,10 @@ import {
   CheckCircle2,
   CircleAlert,
   Download,
-  Image as ImageIcon,
   Loader2,
   Sparkles,
-  Table as TableIcon,
 } from "lucide-react";
+
 import { useReportStore } from "@/lib/store";
 import { GrokDialog } from "@/components/report/GrokDialog";
 import { renderPinScheduleJpeg } from "@/lib/export-pin-schedule";
