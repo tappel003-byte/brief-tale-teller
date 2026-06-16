@@ -215,27 +215,12 @@ function ExportCard({
         zip.file(`${base}-map.${ext}`, base64ToBlob(mapAsset.base64, mapAsset.mime));
       }
 
-      // 2. Pin schedule — N jpgs, one per column (pins split evenly across columns).
+      // 2. Pin schedule — one JPEG with side-by-side columns.
       const sortedPins = [...pins].sort(
         (a, b) => (parseInt(a.location) || 9999) - (parseInt(b.location) || 9999),
       );
-      if (scheduleColumns === 1) {
-        const blob = await renderPinScheduleJpeg(sortedPins, { scheduleColumns: 1 });
-        zip.file(`${base}-pin-schedule.jpg`, blob);
-      } else {
-        const chunkSize = Math.ceil(sortedPins.length / scheduleColumns);
-        const chunks: typeof sortedPins[] = [];
-        for (let i = 0; i < scheduleColumns; i++) {
-          chunks.push(sortedPins.slice(i * chunkSize, (i + 1) * chunkSize));
-        }
-        const blobs = await Promise.all(
-          chunks.map((c) => renderPinScheduleJpeg(c, { scheduleColumns: 1 })),
-        );
-        blobs.forEach((b, i) => {
-          const n = String(i + 1).padStart(2, "0");
-          zip.file(`${base}-pin-schedule-${n}.jpg`, b);
-        });
-      }
+      const scheduleBlob = await renderPinScheduleJpeg(sortedPins, { scheduleColumns });
+      zip.file(`${base}-pin-schedule.jpg`, scheduleBlob);
 
       // 3. Photo plates — all pages.
       const plates = await renderPhotoPlates(photoItems, {
