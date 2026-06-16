@@ -425,8 +425,44 @@ function ExportCard({
         </div>
       </div>
 
+      <div className="border-t pt-3 mb-3">
+        <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+          Map / plan file
+        </label>
+        {mapCandidates.length > 0 ? (
+          <select
+            value={mapFilename ?? ""}
+            onChange={(e) => {
+              if (!coverSection) return;
+              updateSection(coverSection.id, { planFilename: e.target.value || undefined });
+            }}
+            className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+          >
+            <option value="">— none —</option>
+            {mapCandidates.map((fn) => (
+              <option key={fn} value={fn}>
+                {fn}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <div className="text-xs text-amber-600 font-mono">
+            No non-photo files found in import.
+          </div>
+        )}
+      </div>
+
       <div className="text-xs text-muted-foreground font-mono mb-3 space-y-0.5">
-        <div>map: {mapAsset ? mapFilename : <span className="text-amber-600">not found in import</span>}</div>
+        <div>
+          map:{" "}
+          {mapAsset ? (
+            mapFilename
+          ) : (
+            <span className="text-amber-600">
+              {mapCandidates.length > 0 ? "pick one above" : "not found in import"}
+            </span>
+          )}
+        </div>
         <div>pin schedule: 1 JPEG ({scheduleColumns} column{scheduleColumns === 1 ? "" : "s"})</div>
         <div>photo plates: {plateCount} JPEG{plateCount === 1 ? "" : "s"} ({photoItems.length} photos)</div>
       </div>
