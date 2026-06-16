@@ -25,6 +25,7 @@ interface ImportResult {
 
 const PHOTO_RE = /^photo-(\d+)\.(jpe?g|png|webp)$/i;
 const PLAN_RE = /^plan\.(png|jpe?g|pdf)$/i;
+const IMG_EXT_RE = /\.(png|jpe?g|webp|pdf)$/i;
 
 const MIME_BY_EXT: Record<string, string> = {
   jpg: "image/jpeg",
@@ -52,15 +53,25 @@ export async function importZipFile(file: File): Promise<ImportResult> {
   const assets: Record<string, PhotoAsset> = {};
   const objectUrls: Record<string, string> = {};
   let planFilename: string | undefined;
+  let planFallback: string | undefined;
 
   for (const entry of Object.values(zip.files)) {
     if (entry.dir) continue;
     const base = entry.name.split("/").pop() ?? entry.name;
     const planMatch = base.match(PLAN_RE);
     const photoMatch = base.match(PHOTO_RE);
-    if (!planMatch && !photoMatch) continue;
+    const extMatch = base.match(IMG_EXT_RE);
+    // Treat any image whose name hints at a plan/map/site/key drawing as a candidate.
+    const isPlanish =
+      !photoMatch && !!extMatch && /plan|map|site|key|drawing/i.test(base);
+    if (!planMatch && !photoMatch && !isPlanish) continue;
 
-    const ext = (planMatch?.[1] ?? photoMatch?.[2] ?? "").toLowerCase();
+    const ext = (
+      planMatch?.[1] ??
+      photoMatch?.[2] ??
+      extMatch?.[1] ??
+      ""
+    ).toLowerCase();
     const mime = MIME_BY_EXT[ext] ?? "application/octet-stream";
 
     const blob = await entry.async("blob");
@@ -70,7 +81,9 @@ export async function importZipFile(file: File): Promise<ImportResult> {
     objectUrls[base] = URL.createObjectURL(new Blob([ab], { type: mime }));
 
     if (planMatch && !planFilename) planFilename = base;
+    else if (isPlanish && !planFallback) planFallback = base;
   }
+  if (!planFilename) planFilename = planFallback;
 
   // Parse pins.
   const parsed = Papa.parse<RawPinRow>(pinsCsv, {
