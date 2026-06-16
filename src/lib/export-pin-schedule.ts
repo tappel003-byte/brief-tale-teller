@@ -13,7 +13,7 @@ export interface PinScheduleOptions {
   /** Pixel width of the rendered table. */
   width?: number;
   /** Number of side-by-side schedule panels. Each panel remains PIN | DESCRIPTION. */
-  scheduleColumns?: 1 | 2;
+  scheduleColumns?: 1 | 2 | 3 | 4;
   quality?: number;
 }
 
@@ -29,15 +29,15 @@ export async function renderPinScheduleJpeg(
   opts: PinScheduleOptions = {},
 ): Promise<Blob> {
   const W = opts.width ?? 1800;
-  const scheduleColumns = opts.scheduleColumns === 2 ? 2 : 1;
+  const scheduleColumns = (opts.scheduleColumns === 2 || opts.scheduleColumns === 3 || opts.scheduleColumns === 4) ? opts.scheduleColumns : 1;
   const quality = opts.quality ?? 0.92;
 
-  // Layout (in px). Generous gutter between PIN and DESCRIPTION.
-  const padX = 28;
-  const panelGap = scheduleColumns === 2 ? 70 : 0;
-  const panelW = Math.floor((W - panelGap) / scheduleColumns);
-  const gutter = scheduleColumns === 2 ? 44 : 54; // ~0.22–0.30" at 200dpi-ish
-  const pinColW = scheduleColumns === 2 ? 96 : 130;
+  // Layout (in px). Scaled down for denser multi-column layouts.
+  const padX = scheduleColumns >= 3 ? 14 : 28;
+  const panelGap = scheduleColumns === 2 ? 70 : scheduleColumns === 3 ? 40 : scheduleColumns === 4 ? 30 : 0;
+  const panelW = Math.floor((W - panelGap * (scheduleColumns - 1)) / scheduleColumns);
+  const gutter = scheduleColumns === 2 ? 44 : scheduleColumns >= 3 ? 24 : 54;
+  const pinColW = scheduleColumns === 2 ? 96 : scheduleColumns === 3 ? 70 : scheduleColumns === 4 ? 60 : 130;
   const descOffset = padX + pinColW + gutter;
   const descW = panelW - descOffset - padX;
 
