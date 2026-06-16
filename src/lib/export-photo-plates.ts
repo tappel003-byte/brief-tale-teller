@@ -115,8 +115,8 @@ async function renderPage(
 
   const labelSize = Math.round(cellH * 0.052);
   const captionSize = Math.round(cellH * 0.046);
-  const labelFont = `bold ${labelSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif`;
-  const captionFont = `${captionSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif`;
+  const labelFont = `bold ${labelSize}px Calibri, "Carlito", Arial, sans-serif`;
+  const captionFont = `${captionSize}px Calibri, "Carlito", Arial, sans-serif`;
 
   for (let i = 0; i < items.length; i++) {
     const row = Math.floor(i / o.cols);

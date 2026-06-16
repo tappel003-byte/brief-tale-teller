@@ -48,9 +48,9 @@ export async function renderPinScheduleJpeg(
   const rowPadY = 16;
   const headerH = 56;
 
-  const bodyFont = `${bodySize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif`;
-  const pinFont = `700 ${pinSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif`;
-  const headerFont = `700 ${headerSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif`;
+  const bodyFont = `${bodySize}px Calibri, "Carlito", Arial, sans-serif`;
+  const pinFont = `700 ${pinSize}px Calibri, "Carlito", Arial, sans-serif`;
+  const headerFont = `700 ${headerSize}px Calibri, "Carlito", Arial, sans-serif`;
 
   const sorted = [...pins].sort(
     (a, b) => parseLoc(a.location) - parseLoc(b.location),
