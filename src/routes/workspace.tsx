@@ -510,14 +510,41 @@ function PinEditor({
   objectUrls: Record<string, string>;
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [picker, setPicker] = useState<{ pinId: string; idx: number | "add" } | null>(null);
   const setCleanedDescription = useReportStore((s) => s.setCleanedDescription);
   const revertCleaned = useReportStore((s) => s.revertCleaned);
   const reorderPhoto = useReportStore((s) => s.reorderPhoto);
   const removePhotoFromPin = useReportStore((s) => s.removePhotoFromPin);
+  const updatePin = useReportStore((s) => s.updatePin);
+  const project = useReportStore((s) => s.project)!;
+
+  // Pool of every photo-NN asset in the project, sorted by number.
+  const photoPool = useMemo(() => {
+    const out: { filename: string; n: number }[] = [];
+    for (const fn of Object.keys(project.assets)) {
+      const m = fn.match(/^photo-(\d+)\.(jpe?g|png|webp)$/i);
+      if (m) out.push({ filename: fn, n: parseInt(m[1], 10) });
+    }
+    return out.sort((a, b) => a.n - b.n);
+  }, [project.assets]);
 
   const sorted = [...pins].sort(
     (a, b) => (parseInt(a.location) || 9999) - (parseInt(b.location) || 9999),
   );
+
+  function applyPick(filename: string, n: number) {
+    if (!picker) return;
+    const pin = project.pins[picker.pinId];
+    if (!pin) return;
+    const photos = [...pin.photos];
+    if (picker.idx === "add") {
+      photos.push({ n, filename });
+    } else {
+      photos[picker.idx] = { ...photos[picker.idx], filename, n };
+    }
+    updatePin(picker.pinId, { photos });
+    setPicker(null);
+  }
 
   return (
     <div className="rounded-md border bg-panel overflow-hidden">
@@ -580,63 +607,75 @@ function PinEditor({
 
                     <div>
                       <label className="block text-xs font-medium text-muted-foreground mb-1">
-                        Photos
+                        Photos — click a photo to swap it
                       </label>
                       <div className="flex flex-wrap gap-2">
                         {pin.photos.map((ph, idx) => {
                           const src = objectUrls[ph.filename];
                           return (
                             <div
-                              key={ph.filename}
-                              className="relative group w-16 h-16 rounded-sm border bg-white overflow-hidden"
+                              key={`${ph.filename}-${idx}`}
+                              className="relative group w-20 h-20 rounded-sm border bg-white overflow-hidden"
                             >
-                              {src ? (
-                                <img
-                                  src={src}
-                                  alt={`Photo ${ph.n}`}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">
-                                  {ph.n}
-                                </div>
-                              )}
-                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => setPicker({ pinId: pin.id, idx })}
+                                className="absolute inset-0 w-full h-full"
+                                title="Swap photo"
+                              >
+                                {src ? (
+                                  <img
+                                    src={src}
+                                    alt={`Photo ${ph.n}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">
+                                    {ph.n}
+                                  </div>
+                                )}
+                              </button>
+                              <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] font-mono px-1 py-0.5 flex items-center justify-between pointer-events-none">
+                                <span>#{ph.n}</span>
+                              </div>
+                              <div className="absolute top-0 right-0 flex">
                                 {idx > 0 && (
                                   <button
-                                    onClick={() =>
-                                      reorderPhoto(pin.id, idx, idx - 1)
-                                    }
-                                    className="text-white text-xs hover:text-primary"
+                                    onClick={() => reorderPhoto(pin.id, idx, idx - 1)}
+                                    className="bg-black/60 text-white text-[10px] px-1 hover:bg-black"
                                     title="Move left"
                                   >
                                     ←
                                   </button>
                                 )}
-                                <button
-                                  onClick={() =>
-                                    removePhotoFromPin(pin.id, idx)
-                                  }
-                                  className="text-white text-xs hover:text-destructive"
-                                  title="Remove"
-                                >
-                                  ×
-                                </button>
                                 {idx < pin.photos.length - 1 && (
                                   <button
-                                    onClick={() =>
-                                      reorderPhoto(pin.id, idx, idx + 1)
-                                    }
-                                    className="text-white text-xs hover:text-primary"
+                                    onClick={() => reorderPhoto(pin.id, idx, idx + 1)}
+                                    className="bg-black/60 text-white text-[10px] px-1 hover:bg-black"
                                     title="Move right"
                                   >
                                     →
                                   </button>
                                 )}
+                                <button
+                                  onClick={() => removePhotoFromPin(pin.id, idx)}
+                                  className="bg-black/60 text-white text-[10px] px-1 hover:bg-destructive"
+                                  title="Remove"
+                                >
+                                  ×
+                                </button>
                               </div>
                             </div>
                           );
                         })}
+                        <button
+                          type="button"
+                          onClick={() => setPicker({ pinId: pin.id, idx: "add" })}
+                          className="w-20 h-20 rounded-sm border-2 border-dashed border-muted-foreground/40 text-xs text-muted-foreground hover:bg-accent/30 hover:text-foreground"
+                          title="Add photo"
+                        >
+                          + Add
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -646,6 +685,98 @@ function PinEditor({
           );
         })}
       </div>
+
+      {picker && (
+        <PhotoPicker
+          pool={photoPool}
+          objectUrls={objectUrls}
+          onPick={applyPick}
+          onClose={() => setPicker(null)}
+          mode={picker.idx === "add" ? "add" : "swap"}
+        />
+      )}
     </div>
   );
 }
+
+function PhotoPicker({
+  pool,
+  objectUrls,
+  onPick,
+  onClose,
+  mode,
+}: {
+  pool: { filename: string; n: number }[];
+  objectUrls: Record<string, string>;
+  onPick: (filename: string, n: number) => void;
+  onClose: () => void;
+  mode: "swap" | "add";
+}) {
+  const [q, setQ] = useState("");
+  const filtered = q
+    ? pool.filter(
+        (p) =>
+          p.filename.toLowerCase().includes(q.toLowerCase()) ||
+          String(p.n).includes(q),
+      )
+    : pool;
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-background rounded-md border shadow-xl w-full max-w-3xl max-h-[80vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-3 border-b">
+          <div className="text-sm font-semibold">
+            {mode === "add" ? "Add photo" : "Swap photo"} — pick from {pool.length}
+          </div>
+          <button
+            onClick={onClose}
+            className="text-muted-foreground hover:text-foreground text-sm"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="p-3 border-b">
+          <input
+            autoFocus
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Filter by number or filename…"
+            className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1.5"
+          />
+        </div>
+        <div className="overflow-auto p-3 grid grid-cols-4 sm:grid-cols-6 gap-2">
+          {filtered.map((p) => {
+            const src = objectUrls[p.filename];
+            return (
+              <button
+                key={p.filename}
+                type="button"
+                onClick={() => onPick(p.filename, p.n)}
+                className="relative aspect-square rounded-sm border bg-white overflow-hidden hover:ring-2 hover:ring-primary"
+                title={p.filename}
+              >
+                {src && (
+                  <img src={src} alt={`Photo ${p.n}`} className="w-full h-full object-cover" />
+                )}
+                <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] font-mono px-1 py-0.5 text-left">
+                  #{p.n}
+                </span>
+              </button>
+            );
+          })}
+          {filtered.length === 0 && (
+            <div className="col-span-full text-center text-sm text-muted-foreground py-6">
+              No matches.
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
