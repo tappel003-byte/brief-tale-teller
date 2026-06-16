@@ -304,7 +304,7 @@ function ExportCard({
       }
 
       const zipBlob = await zip.generateAsync({ type: "blob" });
-      downloadBlob(zipBlob, `${base}-export.zip`);
+      downloadBlob(zipBlob, zipName);
       toast.success("Export complete");
     } catch (e) {
       toast.error("Export failed", {
