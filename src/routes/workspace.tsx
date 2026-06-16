@@ -183,13 +183,12 @@ function PinScheduleCard({
   project: { name: string };
   pins: ReturnType<typeof Object.values<import("@/lib/types").Pin>>;
 }) {
-  const [includeRoomArea, setIncludeRoomArea] = useState(true);
   const [busy, setBusy] = useState(false);
 
   async function onExport() {
     setBusy(true);
     try {
-      const blob = await renderPinScheduleJpeg(pins, { includeRoomArea });
+      const blob = await renderPinScheduleJpeg(pins);
       downloadBlob(blob, `${slug(project.name)}-pin-schedule.jpg`);
       toast.success("Pin schedule exported");
     } catch (e) {
@@ -207,17 +206,10 @@ function PinScheduleCard({
         <TableIcon className="size-4 text-primary" />
         <h3 className="font-medium">Pin Schedule</h3>
       </div>
-      <p className="text-xs text-muted-foreground mb-3">
-        One JPEG of the full pin table. Sized to fit its own width — no 11×17 forcing.
+      <p className="text-xs text-muted-foreground mb-4">
+        2-column table — PIN / DESCRIPTION with photos inline. Dark header, alternating grey stripes. Natural width, no 11×17 forcing.
       </p>
-      <label className="flex items-center gap-2 text-sm mb-4">
-        <input
-          type="checkbox"
-          checked={includeRoomArea}
-          onChange={(e) => setIncludeRoomArea(e.target.checked)}
-        />
-        Include Room / Area column
-      </label>
+
       <button
         onClick={onExport}
         disabled={busy || pins.length === 0}
