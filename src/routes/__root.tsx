@@ -84,7 +84,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         content:
           "Turn a Field Reporter ZIP into a formatted, AI-cleaned, editable distress-survey report. No login, no cloud.",
       },
-      { property: "og:title", content: "Report Builder" },
+      { property: "og:title", content: "Report Builder — Distress survey reports" },
       {
         property: "og:description",
         content:
@@ -92,6 +92,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Report Builder — Distress survey reports" },
+      { name: "description", content: "Web app transforms Field Reporter exports into editable distress-survey reports." },
+      { property: "og:description", content: "Web app transforms Field Reporter exports into editable distress-survey reports." },
+      { name: "twitter:description", content: "Web app transforms Field Reporter exports into editable distress-survey reports." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/909d5162-439f-44b1-b130-90549e620219/id-preview-cbaca91a--f2053db5-6662-4763-a88d-5f2470a480b4.lovable.app-1781615235436.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/909d5162-439f-44b1-b130-90549e620219/id-preview-cbaca91a--f2053db5-6662-4763-a88d-5f2470a480b4.lovable.app-1781615235436.png" },
     ],
     links: [
       {
