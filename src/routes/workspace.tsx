@@ -184,11 +184,12 @@ function PinScheduleCard({
   pins: ReturnType<typeof Object.values<import("@/lib/types").Pin>>;
 }) {
   const [busy, setBusy] = useState(false);
+  const [scheduleColumns, setScheduleColumns] = useState<1 | 2>(1);
 
   async function onExport() {
     setBusy(true);
     try {
-      const blob = await renderPinScheduleJpeg(pins);
+      const blob = await renderPinScheduleJpeg(pins, { scheduleColumns });
       downloadBlob(blob, `${slug(project.name)}-pin-schedule.jpg`);
       toast.success("Pin schedule exported");
     } catch (e) {
@@ -207,8 +208,17 @@ function PinScheduleCard({
         <h3 className="font-medium">Pin Schedule</h3>
       </div>
       <p className="text-xs text-muted-foreground mb-4">
-        2-column table — PIN / DESCRIPTION with photos inline. Dark header, alternating grey stripes. Natural width, no 11×17 forcing.
+        PIN / DESCRIPTION with photos inline. Choose one schedule panel or split into two side-by-side panels for portrait/right-column placement.
       </p>
+      <label className="block text-sm mb-1">Schedule layout</label>
+      <select
+        value={scheduleColumns}
+        onChange={(e) => setScheduleColumns(parseInt(e.target.value, 10) === 2 ? 2 : 1)}
+        className="text-sm rounded-sm border border-input bg-background px-2 py-1 mb-4"
+      >
+        <option value={1}>1 column of pins</option>
+        <option value={2}>2 columns of pins</option>
+      </select>
 
       <button
         onClick={onExport}
