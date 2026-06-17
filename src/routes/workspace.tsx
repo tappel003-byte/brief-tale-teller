@@ -616,27 +616,47 @@ function ExportCard({
           <figure className="space-y-1.5">
             <div className="flex items-center justify-between gap-2">
               <figcaption className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
-                Photo plate · page 1 of {plateCount || 1}
+                Photo plate · page {(previewUrls.plates?.length ? previewPage + 1 : 1)} of {plateCount || 1}
               </figcaption>
-              <label className="text-[11px] font-mono text-muted-foreground inline-flex items-center gap-1.5">
-                Layout
-                <select
-                  value={perPage}
-                  onChange={(e) => setPerPage(parseInt(e.target.value))}
-                  className="text-xs rounded-sm border border-input bg-background px-1.5 py-0.5"
-                >
-                  <option value={0}>Auto ({autoPerPage(photoItems.length)})</option>
-                  <option value={6}>6 (3×2)</option>
-                  <option value={8}>8 (4×2)</option>
-                  <option value={10}>10 (5×2)</option>
-                  <option value={12}>12 (4×3)</option>
-                </select>
-              </label>
+              <div className="flex items-center gap-2">
+                {previewUrls.plates && previewUrls.plates.length > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setPreviewPage((p) => Math.max(0, p - 1))}
+                      disabled={previewPage === 0}
+                      className="text-[11px] rounded-sm border border-input bg-background px-1.5 py-0.5 hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      ←
+                    </button>
+                    <button
+                      onClick={() => setPreviewPage((p) => Math.min((previewUrls.plates?.length ?? 1) - 1, p + 1))}
+                      disabled={previewPage >= (previewUrls.plates?.length ?? 1) - 1}
+                      className="text-[11px] rounded-sm border border-input bg-background px-1.5 py-0.5 hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      →
+                    </button>
+                  </div>
+                )}
+                <label className="text-[11px] font-mono text-muted-foreground inline-flex items-center gap-1.5">
+                  Layout
+                  <select
+                    value={perPage}
+                    onChange={(e) => setPerPage(parseInt(e.target.value))}
+                    className="text-xs rounded-sm border border-input bg-background px-1.5 py-0.5"
+                  >
+                    <option value={0}>Auto ({autoPerPage(photoItems.length)})</option>
+                    <option value={6}>6 (3×2)</option>
+                    <option value={8}>8 (4×2)</option>
+                    <option value={10}>10 (5×2)</option>
+                    <option value={12}>12 (4×3)</option>
+                  </select>
+                </label>
+              </div>
             </div>
-            {previewUrls.plate ? (
+            {previewUrls.plates && previewUrls.plates[previewPage] ? (
               <img
-                src={previewUrls.plate}
-                alt="Photo plate preview"
+                src={previewUrls.plates[previewPage]}
+                alt={`Photo plate preview page ${previewPage + 1}`}
                 className="w-full rounded-sm border bg-white shadow-sm"
               />
             ) : (
