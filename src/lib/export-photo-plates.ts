@@ -155,6 +155,10 @@ async function renderPage(
       const scale = Math.min(cellW / img.naturalWidth, photoH / img.naturalHeight);
       const drawW = img.naturalWidth * scale;
       const drawH = img.naturalHeight * scale;
+      // 1px warm-gray border so white photo backgrounds don't bleed into the page.
+      ctx.strokeStyle = "#d4cfc8";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x - 0.5, y - 0.5, drawW + 1, drawH + 1);
       ctx.drawImage(img, x, y, drawW, drawH);
     }
 
