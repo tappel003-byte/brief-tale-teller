@@ -26,6 +26,8 @@ export interface PhotoPlateOptions {
   labelCaptionGap?: number;
   /** Max wrapped caption lines per cell. Default 4. */
   maxCaptionLines?: number;
+  /** Caption font family stack. Defaults to fontFamily. */
+  captionFontFamily?: string;
 }
 
 export interface PlateResult {
@@ -88,6 +90,7 @@ export async function renderPhotoPlates(
     photoLabelGap: opts.photoLabelGap ?? 10,
     labelCaptionGap: opts.labelCaptionGap ?? 6,
     maxCaptionLines: opts.maxCaptionLines ?? 4,
+    captionFontFamily: opts.captionFontFamily ?? opts.fontFamily ?? `Calibri, "Carlito", Arial, sans-serif`,
   };
 
   const results: PlateResult[] = [];
@@ -121,6 +124,7 @@ interface PageOpts {
   photoLabelGap: number;
   labelCaptionGap: number;
   maxCaptionLines: number;
+  captionFontFamily: string;
 }
 
 async function renderPage(
@@ -153,7 +157,7 @@ async function renderPage(
   const photoH = Math.max(0, cellH - textBlockH - o.photoLabelGap);
 
   const labelFont = `bold ${labelSize}px ${o.fontFamily}`;
-  const captionFont = `${captionSize}px ${o.fontFamily}`;
+  const captionFont = `${captionSize}px ${o.captionFontFamily || o.fontFamily}`;
 
   for (let i = 0; i < items.length; i++) {
     const row = Math.floor(i / o.cols);
