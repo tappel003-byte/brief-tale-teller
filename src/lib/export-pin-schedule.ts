@@ -1,10 +1,9 @@
-// Render the pin schedule as a JPEG of the locked PIN | DESCRIPTION table —
-// LOCKED template, see mem://design/pin-schedule-template.
+// Render the pin schedule as a JPEG of the locked PIN | DESCRIPTION table.
 //
 // Each schedule panel is PIN | DESCRIPTION (with photos inlined as "(Photos N–M)").
 // The schedule can render as one vertical panel or split into two side-by-side
 // panels for fitting a tall portrait/right-column slide area.
-// Dark header bar, black bold 2-digit PINs, alternating grey/white stripes.
+// Cream alternating stripes, dark header, red circles for PINs.
 // White background, natural width — no 11×17 forcing.
 
 import type { Pin } from "./types";
