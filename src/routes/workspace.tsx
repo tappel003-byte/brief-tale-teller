@@ -342,7 +342,7 @@ function ExportCard({
     }, 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scheduleColumns, perPage, fontFamily, captionFontFamily, labelSize, captionSize, pinDescSize, maxLines]);
+  }, [scheduleColumns, perPage, fontFamily, captionFontFamily, pinFontFamily, labelSize, captionSize, pinDescSize, maxLines]);
 
   async function renderPreview() {
     try {
