@@ -831,7 +831,25 @@ function PinEditor({
         {sorted.map((pin) => {
           const isOpen = expanded.has(pin.id);
           return (
-            <div key={pin.id} className="border-b last:border-0">
+            <div key={pin.id} className="border-b last:border-0 flex items-center">
+              {(() => {
+                const effective: "red" | "grey" =
+                  pin.colorOverride ??
+                  ((pin.type || "").toLowerCase().includes("exterior") ? "grey" : "red");
+                const next: "red" | "grey" = effective === "red" ? "grey" : "red";
+                return (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updatePin(pin.id, { colorOverride: next });
+                    }}
+                    title={`Pin color: ${effective}${pin.colorOverride ? " (override)" : " (auto)"} — click to switch`}
+                    className="ml-3 size-5 rounded-full shrink-0 border border-black/20 shadow-sm transition-transform hover:scale-110"
+                    style={{ backgroundColor: effective === "grey" ? "#718096" : "#c53030" }}
+                  />
+                );
+              })()}
               <button
                 onClick={() =>
                   setExpanded((prev) => {
@@ -841,7 +859,7 @@ function PinEditor({
                     return next;
                   })
                 }
-                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent/30 transition-colors"
+                className="flex-1 flex items-center gap-3 px-4 py-3 text-left hover:bg-accent/30 transition-colors"
               >
                 <span className="font-mono text-sm font-semibold w-8 shrink-0">
                   {pin.location}
@@ -853,6 +871,7 @@ function PinEditor({
                   {pin.photos.length} photo{pin.photos.length === 1 ? "" : "s"}
                 </span>
               </button>
+
 
               {isOpen && (
                 <div className="px-4 pb-4 bg-canvas/40">
