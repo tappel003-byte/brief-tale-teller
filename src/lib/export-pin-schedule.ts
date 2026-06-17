@@ -18,8 +18,24 @@ export interface PinScheduleOptions {
   pinColorMode?: "auto" | "red" | "grey";
 }
 
+// Locked palette — cream + red circles, less corporate.
+const HEADER_BG = "#1a1a1a";
+const HEADER_FG = "#ffffff";
+const STRIPE = "#f5f0e8";
+const BODY = "#1a1a1a";
+const PIN_CIRCLE_RED = "#c53030";
+const PIN_CIRCLE_GREY = "#718096";
+const PIN_FG = "#ffffff";
 
-export async function renderPinScheduleJpeg(
+function pinColorFor(type: string, mode: PinScheduleOptions["pinColorMode"]): string {
+  if (mode === "grey") return PIN_CIRCLE_GREY;
+  if (mode === "red") return PIN_CIRCLE_RED;
+  // auto: exterior = grey, everything else = red
+  const t = type.trim().toLowerCase();
+  if (t === "exterior" || t.includes("exterior")) return PIN_CIRCLE_GREY;
+  return PIN_CIRCLE_RED;
+}
+
   pins: Pin[],
   opts: PinScheduleOptions = {},
 ): Promise<Blob> {
