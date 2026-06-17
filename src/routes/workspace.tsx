@@ -301,6 +301,7 @@ function ExportCard({
   );
   const [labelSize, setLabelSize] = useState<number>(22);
   const [captionSize, setCaptionSize] = useState<number>(20);
+  const [pinDescSize, setPinDescSize] = useState<number>(22);
   const [maxLines, setMaxLines] = useState<number>(4);
   const [busy, setBusy] = useState(false);
   const [previewUrls, setPreviewUrls] = useState<{
@@ -337,7 +338,7 @@ function ExportCard({
     }, 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scheduleColumns, perPage, fontFamily, captionFontFamily, labelSize, captionSize, maxLines]);
+  }, [scheduleColumns, perPage, fontFamily, captionFontFamily, labelSize, captionSize, pinDescSize, maxLines]);
 
   async function renderPreview() {
     try {
@@ -348,6 +349,7 @@ function ExportCard({
       if (sortedPins.length) {
         const blob = await renderPinScheduleJpeg(sortedPins, {
           scheduleColumns,
+          bodySize: pinDescSize,
           width: 900,
           quality: 0.6,
         });
@@ -400,7 +402,7 @@ function ExportCard({
       const sortedPins = [...pins].sort(
         (a, b) => (parseInt(a.location) || 9999) - (parseInt(b.location) || 9999),
       );
-      const scheduleBlob = await renderPinScheduleJpeg(sortedPins, { scheduleColumns });
+      const scheduleBlob = await renderPinScheduleJpeg(sortedPins, { scheduleColumns, bodySize: pinDescSize });
       zip.file(`${base}-pin-schedule.jpg`, scheduleBlob);
 
       // 3. Photo plates — all pages.
