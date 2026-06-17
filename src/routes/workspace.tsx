@@ -525,18 +525,6 @@ function ExportCard({
                   className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
                 />
               </div>
-              <div>
-                <label className="block text-[11px] mb-1 text-muted-foreground">Pin color</label>
-                <select
-                  value={pinColorMode}
-                  onChange={(e) => setPinColorMode(e.target.value as "auto" | "red" | "grey")}
-                  className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-                >
-                  <option value="auto">Auto (exterior grey)</option>
-                  <option value="red">All red</option>
-                  <option value="grey">All grey</option>
-                </select>
-              </div>
             </div>
           </div>
 
