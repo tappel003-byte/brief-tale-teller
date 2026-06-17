@@ -429,6 +429,102 @@ function ExportCard({
 
   return (
     <div className="space-y-4">
+      {/* Settings — map picker + optional typography. */}
+      <div className="rounded-md border bg-panel/60 p-4">
+        <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-3">
+          Other settings
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Map */}
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Map / plan file
+            </label>
+            {mapCandidates.length > 0 ? (
+              <select
+                value={mapFilename ?? ""}
+                onChange={(e) => {
+                  if (!coverSection) return;
+                  updateSection(coverSection.id, { planFilename: e.target.value || undefined });
+                }}
+                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1.5"
+              >
+                <option value="">— none —</option>
+                {mapCandidates.map((fn) => (
+                  <option key={fn} value={fn}>
+                    {fn}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="text-xs text-amber-600 font-mono">
+                No non-photo files found in import.
+              </div>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              Exported as-is so you can resize it inside your template.
+            </p>
+          </div>
+        </div>
+
+
+        <details className="mt-4 group" open>
+          <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground select-none inline-flex items-center gap-1">
+            <span className="group-open:rotate-90 transition-transform inline-block">▸</span>
+            Typography (font, sizes, caption lines)
+          </summary>
+          <div className="grid gap-3 md:grid-cols-4 mt-3">
+            <div>
+              <label className="block text-[11px] mb-1 text-muted-foreground">Font</label>
+              <select
+                value={fontFamily}
+                onChange={(e) => setFontFamily(e.target.value)}
+                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+              >
+                <option value={`Calibri, "Carlito", Arial, sans-serif`}>Calibri</option>
+                <option value={`Arial, sans-serif`}>Arial</option>
+                <option value={`"Helvetica Neue", Helvetica, Arial, sans-serif`}>Helvetica</option>
+                <option value={`Georgia, "Times New Roman", serif`}>Georgia</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] mb-1 text-muted-foreground">Label px</label>
+              <input
+                type="number"
+                min={10}
+                max={48}
+                value={labelSize}
+                onChange={(e) => setLabelSize(parseInt(e.target.value) || 22)}
+                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] mb-1 text-muted-foreground">Caption px</label>
+              <input
+                type="number"
+                min={8}
+                max={40}
+                value={captionSize}
+                onChange={(e) => setCaptionSize(parseInt(e.target.value) || 20)}
+                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] mb-1 text-muted-foreground">Max caption lines</label>
+              <input
+                type="number"
+                min={1}
+                max={8}
+                value={maxLines}
+                onChange={(e) => setMaxLines(parseInt(e.target.value) || 4)}
+                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+              />
+            </div>
+          </div>
+        </details>
+      </div>
+
       {/* HERO: live preview is the headline. */}
       <div className="rounded-md border bg-canvas/60 p-4 shadow-[var(--shadow-canvas)]">
         <div className="flex items-center justify-between mb-3">
@@ -543,102 +639,6 @@ function ExportCard({
             Export ZIP
           </button>
         </div>
-      </div>
-
-      {/* Settings — map picker + optional typography. */}
-      <div className="rounded-md border bg-panel/60 p-4">
-        <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-3">
-          Other settings
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* Map */}
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Map / plan file
-            </label>
-            {mapCandidates.length > 0 ? (
-              <select
-                value={mapFilename ?? ""}
-                onChange={(e) => {
-                  if (!coverSection) return;
-                  updateSection(coverSection.id, { planFilename: e.target.value || undefined });
-                }}
-                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1.5"
-              >
-                <option value="">— none —</option>
-                {mapCandidates.map((fn) => (
-                  <option key={fn} value={fn}>
-                    {fn}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <div className="text-xs text-amber-600 font-mono">
-                No non-photo files found in import.
-              </div>
-            )}
-            <p className="text-[11px] text-muted-foreground">
-              Exported as-is so you can resize it inside your template.
-            </p>
-          </div>
-        </div>
-
-
-        <details className="mt-4 group" open>
-          <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground select-none inline-flex items-center gap-1">
-            <span className="group-open:rotate-90 transition-transform inline-block">▸</span>
-            Typography (font, sizes, caption lines)
-          </summary>
-          <div className="grid gap-3 md:grid-cols-4 mt-3">
-            <div>
-              <label className="block text-[11px] mb-1 text-muted-foreground">Font</label>
-              <select
-                value={fontFamily}
-                onChange={(e) => setFontFamily(e.target.value)}
-                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-              >
-                <option value={`Calibri, "Carlito", Arial, sans-serif`}>Calibri</option>
-                <option value={`Arial, sans-serif`}>Arial</option>
-                <option value={`"Helvetica Neue", Helvetica, Arial, sans-serif`}>Helvetica</option>
-                <option value={`Georgia, "Times New Roman", serif`}>Georgia</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-[11px] mb-1 text-muted-foreground">Label px</label>
-              <input
-                type="number"
-                min={10}
-                max={48}
-                value={labelSize}
-                onChange={(e) => setLabelSize(parseInt(e.target.value) || 22)}
-                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] mb-1 text-muted-foreground">Caption px</label>
-              <input
-                type="number"
-                min={8}
-                max={40}
-                value={captionSize}
-                onChange={(e) => setCaptionSize(parseInt(e.target.value) || 20)}
-                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] mb-1 text-muted-foreground">Max caption lines</label>
-              <input
-                type="number"
-                min={1}
-                max={8}
-                value={maxLines}
-                onChange={(e) => setMaxLines(parseInt(e.target.value) || 4)}
-                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-              />
-            </div>
-          </div>
-        </details>
       </div>
     </div>
   );
