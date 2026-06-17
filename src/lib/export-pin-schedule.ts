@@ -1,11 +1,3 @@
-// Render the pin schedule as a JPEG of the locked PIN | DESCRIPTION table.
-//
-// Each schedule panel is PIN | DESCRIPTION (with photos inlined as "(Photos N–M)").
-// The schedule can render as one vertical panel or split into two side-by-side
-// panels for fitting a tall portrait/right-column slide area.
-// Cream alternating stripes, dark header, red circles for PINs.
-// White background, natural width — no 11×17 forcing.
-
 import type { Pin } from "./types";
 
 export interface PinScheduleOptions {
@@ -18,16 +10,14 @@ export interface PinScheduleOptions {
   bodySize?: number;
   /** Font family stack for header + body. */
   fontFamily?: string;
+  /** Pin circle color mode.
+   *  "auto"  = exterior grey, interior red (default)
+   *  "red"   = all red
+   *  "grey"  = all grey
+   */
+  pinColorMode?: "auto" | "red" | "grey";
 }
 
-
-// Locked palette — cream + red circles, less corporate.
-const HEADER_BG = "#1a1a1a";
-const HEADER_FG = "#ffffff";
-const STRIPE = "#f5f0e8";
-const BODY = "#1a1a1a";
-const PIN_CIRCLE = "#c53030";
-const PIN_FG = "#ffffff";
 
 export async function renderPinScheduleJpeg(
   pins: Pin[],
