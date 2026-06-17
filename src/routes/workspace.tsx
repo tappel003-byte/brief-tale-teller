@@ -50,14 +50,15 @@ function JobPage() {
   useEffect(() => {
     let cancelled = false;
     async function run() {
-      if (project && (!search.job || project.id === search.job)) return;
+      if (project && (!search.job || project.id === search.job)) {
+        setLoading(false);
+        return;
+      }
       if (search.job) {
         setLoading(true);
         const ok = await loadJobById(search.job);
-        if (!cancelled) {
-          setLoading(false);
-          if (!ok) navigate({ to: "/" });
-        }
+        setLoading(false);
+        if (!cancelled && !ok) navigate({ to: "/" });
         return;
       }
       if (!hydrate()) navigate({ to: "/" });
