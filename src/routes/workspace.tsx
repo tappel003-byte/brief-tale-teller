@@ -306,8 +306,9 @@ function ExportCard({
   const [busy, setBusy] = useState(false);
   const [previewUrls, setPreviewUrls] = useState<{
     schedule?: string;
-    plate?: string;
+    plates?: string[];
   }>({});
+  const [previewPage, setPreviewPage] = useState(0);
 
   const effectivePerPage = perPage || autoPerPage(photoItems.length);
   const plateCount = photoItems.length
@@ -367,16 +368,22 @@ function ExportCard({
           height: 800,
           quality: 0.6,
         });
-        if (plates[0]) next.plate = URL.createObjectURL(plates[0].blob);
+        next.plates = plates.map((p) => URL.createObjectURL(p.blob));
       }
       setPreviewUrls((prev) => {
         // revoke old URLs to avoid memory leaks
         if (prev.schedule && prev.schedule !== next.schedule)
           URL.revokeObjectURL(prev.schedule);
-        if (prev.plate && prev.plate !== next.plate)
-          URL.revokeObjectURL(prev.plate);
+        if (prev.plates) {
+          for (const url of prev.plates) {
+            if (!next.plates || !next.plates.includes(url)) {
+              URL.revokeObjectURL(url);
+            }
+          }
+        }
         return next;
       });
+      setPreviewPage(0);
     } catch {
       /* preview failures are silent */
     }
