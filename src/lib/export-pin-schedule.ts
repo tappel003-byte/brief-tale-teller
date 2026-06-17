@@ -16,12 +16,13 @@ export interface PinScheduleOptions {
   quality?: number;
 }
 
-// Locked palette.
-const HEADER_BG = "#141414";
+// Locked palette — cream + red circles, less corporate.
+const HEADER_BG = "#1a1a1a";
 const HEADER_FG = "#ffffff";
-const STRIPE = "#eef0f3";
-const BODY = "#1f2937";
-const PIN_COLOR = "#000000";
+const STRIPE = "#f5f0e8";
+const BODY = "#1a1a1a";
+const PIN_CIRCLE = "#c53030";
+const PIN_FG = "#ffffff";
 
 export async function renderPinScheduleJpeg(
   pins: Pin[],
