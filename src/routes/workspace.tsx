@@ -413,7 +413,7 @@ function ExportCard({
       const sortedPins = [...pins].sort(
         (a, b) => (parseInt(a.location) || 9999) - (parseInt(b.location) || 9999),
       );
-      const scheduleBlob = await renderPinScheduleJpeg(sortedPins, { scheduleColumns, bodySize: pinDescSize });
+      const scheduleBlob = await renderPinScheduleJpeg(sortedPins, { scheduleColumns, bodySize: pinDescSize, fontFamily: pinFontFamily });
       zip.file(`${base}-pin-schedule.jpg`, scheduleBlob);
 
       // 3. Photo plates — all pages.
