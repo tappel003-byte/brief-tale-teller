@@ -97,18 +97,57 @@ function JobPage() {
     return out.sort((a, b) => a.n - b.n);
   }, [pins, objectUrls]);
 
+  const editedCount = pins.filter((p) => p.userEdited).length;
+  const stages = [
+    {
+      n: 1,
+      key: "import",
+      title: "Import",
+      hint: "Grok round-trip",
+      done: project.grokImported,
+    },
+    {
+      n: 2,
+      key: "clean",
+      title: "Clean",
+      hint: `${pins.length} pins · ${editedCount} edited`,
+      done: pins.length > 0 && project.grokImported,
+    },
+    {
+      n: 3,
+      key: "arrange",
+      title: "Arrange",
+      hint: "Map & layout",
+      done: false,
+    },
+    {
+      n: 4,
+      key: "export",
+      title: "Export",
+      hint: `${photoItems.length} photos`,
+      done: false,
+    },
+  ];
+  const activeIdx = stages.findIndex((s) => !s.done);
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <header className="border-b bg-panel/60 backdrop-blur-sm">
-        <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-between">
+      <header className="border-b bg-panel/60 backdrop-blur-sm sticky top-0 z-30">
+        <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between gap-4">
           <Link
             to="/"
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground shrink-0"
           >
             <ArrowLeft className="size-4" />
             All jobs
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex-1 min-w-0 text-center">
+            <div className="font-semibold tracking-tight truncate">{project.name}</div>
+            <div className="text-[11px] text-muted-foreground font-mono">
+              {pins.length} pins · {photoItems.length} photos
+            </div>
+          </div>
+          <div className="shrink-0">
             {project.grokImported ? (
               <span className="text-[11px] font-mono inline-flex items-center gap-1 text-emerald-600">
                 <CheckCircle2 className="size-3" />
@@ -122,25 +161,56 @@ function JobPage() {
             )}
           </div>
         </div>
+        <div className="border-t bg-background/60">
+          <div className="max-w-6xl mx-auto px-6 py-2 flex items-stretch gap-2">
+            {stages.map((s, i) => {
+              const active = i === activeIdx || (activeIdx === -1 && i === stages.length - 1);
+              return (
+                <a
+                  key={s.key}
+                  href={`#stage-${s.key}`}
+                  className={`flex-1 min-w-0 rounded-sm border px-3 py-1.5 flex items-center gap-2 transition-colors ${
+                    active
+                      ? "bg-primary/5 border-primary/40"
+                      : "bg-panel/40 border-transparent hover:border-border"
+                  }`}
+                >
+                  <span
+                    className={`size-5 rounded-full text-[10px] font-mono font-semibold flex items-center justify-center shrink-0 ${
+                      s.done
+                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                        : active
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {s.done ? "✓" : s.n}
+                  </span>
+                  <div className="min-w-0 leading-tight text-left">
+                    <div className="text-xs font-medium truncate">{s.title}</div>
+                    <div className="text-[10px] text-muted-foreground font-mono truncate">
+                      {s.hint}
+                    </div>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </div>
       </header>
 
-      <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-10">
-        <h1 className="text-2xl font-semibold tracking-tight mb-1">
-          {project.name}
-        </h1>
-        <p className="text-sm text-muted-foreground mb-8 font-mono">
-          {pins.length} pins · {photoItems.length} photos
-        </p>
-
-        <section className="mb-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-            Step 1 · Grok round-trip
-          </h2>
+      <main className="flex-1 max-w-6xl w-full mx-auto px-6 py-8 space-y-10">
+        <Stage
+          n={1}
+          id="stage-import"
+          title="Import"
+          subtitle="Round-trip the raw descriptions through Grok to clean them up."
+        >
           <button
             onClick={() => setGrokOpen(true)}
             className="w-full text-left rounded-md border bg-panel p-4 hover:bg-accent/40 transition-colors flex items-start gap-3"
           >
-            <div className="size-9 rounded-sm bg-primary/10 text-primary flex items-center justify-center shrink-0">
+            <div className="size-10 rounded-sm bg-primary/10 text-primary flex items-center justify-center shrink-0">
               <Sparkles className="size-5" />
             </div>
             <div className="flex-1 min-w-0">
@@ -150,33 +220,64 @@ function JobPage() {
                   : "Copy Grok prompt, paste cleaned CSV"}
               </div>
               <div className="text-xs text-muted-foreground">
-                Opens the round-trip dialog: copy the pre-filled prompt, paste it into Grok, paste the returned CSV back here.
+                Opens the round-trip dialog. Copy the prompt, paste into Grok, paste the returned CSV back here.
               </div>
             </div>
           </button>
-        </section>
+        </Stage>
 
-        <section className="mb-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-            Pins & Descriptions
-          </h2>
+        <Stage
+          n={2}
+          id="stage-clean"
+          title="Clean"
+          subtitle="Review each pin's description and swap or reorder photos. Click a row to expand."
+        >
           <PinEditor pins={pins} objectUrls={objectUrls} />
-        </section>
+        </Stage>
 
-        <section>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-            Step 2 · Export
-          </h2>
+        <Stage
+          n={3}
+          id="stage-arrange"
+          title="Arrange & Export"
+          subtitle="Pick the map, dial in layout, then drop the ZIP into your 11×17 template."
+        >
           <ExportCard
             project={project}
             pins={pins}
             photoItems={photoItems}
           />
-        </section>
+        </Stage>
       </main>
 
       {grokOpen && <GrokDialog onClose={() => setGrokOpen(false)} />}
     </div>
+  );
+}
+
+function Stage({
+  n,
+  id,
+  title,
+  subtitle,
+  children,
+}: {
+  n: number;
+  id: string;
+  title: string;
+  subtitle: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section id={id} className="scroll-mt-32">
+      <div className="flex items-baseline gap-3 mb-3">
+        <span className="font-mono text-[10px] text-muted-foreground tracking-widest uppercase">
+          Stage {n}
+        </span>
+        <h2 className="text-lg font-semibold tracking-tight">{title}</h2>
+      </div>
+      <p className="text-sm text-muted-foreground mb-4 max-w-2xl">{subtitle}</p>
+      {children}
+    </section>
   );
 }
 
