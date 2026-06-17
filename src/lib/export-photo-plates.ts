@@ -93,9 +93,11 @@ export async function renderPhotoPlates(
   const results: PlateResult[] = [];
   for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
     const page = pages[pageIdx];
-    // Scale the grid to the actual photo count on this page so a short final
-    // page (or a small total set) fills the canvas instead of leaving big gaps.
-    const pageGrid = page.length < perPage ? gridFor(page.length) : { cols, rows };
+    // Only re-grid when the ENTIRE set is smaller than perPage (e.g. user
+    // picked 10/page but only has 4 photos total). For a short trailing page
+    // of a larger set, keep the full grid so cells stay the same size.
+    const useSmallGrid = photos.length < perPage;
+    const pageGrid = useSmallGrid ? gridFor(photos.length) : { cols, rows };
     const pageOpts: PageOpts = { ...baseOpts, cols: pageGrid.cols, rows: pageGrid.rows };
     const blob = await renderPage(
       page,
