@@ -69,20 +69,11 @@ function JobPage() {
     };
   }, [project, search.job, loadJobById, hydrate, navigate]);
 
-  if (loading || !project) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
-        <Loader2 className="size-5 animate-spin mr-2" />
-        Loading job…
-      </div>
-    );
-  }
-
-  const pins = Object.values(project.pins);
+  const pins = useMemo(() => (project ? Object.values(project.pins) : []), [project]);
   const photoItems: PhotoPlateItem[] = useMemo(() => {
     const seen = new Set<number>();
     const out: PhotoPlateItem[] = [];
-    for (const pin of pins.sort(
+    for (const pin of [...pins].sort(
       (a, b) => (parseInt(a.location) || 9999) - (parseInt(b.location) || 9999),
     )) {
       const caption =
@@ -97,6 +88,15 @@ function JobPage() {
     }
     return out.sort((a, b) => a.n - b.n);
   }, [pins, objectUrls]);
+
+  if (loading || !project) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-muted-foreground">
+        <Loader2 className="size-5 animate-spin mr-2" />
+        Loading job…
+      </div>
+    );
+  }
 
   const editedCount = pins.filter((p) => p.userEdited).length;
   const stages = [
