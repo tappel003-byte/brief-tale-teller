@@ -1,10 +1,9 @@
-// Render the pin schedule as a JPEG of the locked PIN | DESCRIPTION table —
-// LOCKED template, see mem://design/pin-schedule-template.
+// Render the pin schedule as a JPEG of the locked PIN | DESCRIPTION table.
 //
 // Each schedule panel is PIN | DESCRIPTION (with photos inlined as "(Photos N–M)").
 // The schedule can render as one vertical panel or split into two side-by-side
 // panels for fitting a tall portrait/right-column slide area.
-// Dark header bar, black bold 2-digit PINs, alternating grey/white stripes.
+// Cream alternating stripes, dark header, red circles for PINs.
 // White background, natural width — no 11×17 forcing.
 
 import type { Pin } from "./types";
@@ -17,12 +16,13 @@ export interface PinScheduleOptions {
   quality?: number;
 }
 
-// Locked palette.
-const HEADER_BG = "#141414";
+// Locked palette — cream + red circles, less corporate.
+const HEADER_BG = "#1a1a1a";
 const HEADER_FG = "#ffffff";
-const STRIPE = "#eef0f3";
-const BODY = "#1f2937";
-const PIN_COLOR = "#000000";
+const STRIPE = "#f5f0e8";
+const BODY = "#1a1a1a";
+const PIN_CIRCLE = "#c53030";
+const PIN_FG = "#ffffff";
 
 export async function renderPinScheduleJpeg(
   pins: Pin[],
@@ -108,11 +108,20 @@ export async function renderPinScheduleJpeg(
         ctx.fillRect(panelX, y, panelW, r.height);
       }
 
-      // PIN (black bold, 2-digit).
-      ctx.fillStyle = PIN_COLOR;
+      // PIN (white on red circle, 2-digit).
+      const pinText = pad2(r.p.location);
       ctx.font = pinFont;
-      ctx.textBaseline = "top";
-      ctx.fillText(pad2(r.p.location), panelX + padX, y + rowPadY);
+      const pinTextW = ctx.measureText(pinText).width;
+      const circleR = Math.max(pinTextW / 2 + 14, 22);
+      const pinCx = panelX + padX + circleR;
+      const pinCy = y + r.height / 2;
+      ctx.beginPath();
+      ctx.arc(pinCx, pinCy, circleR, 0, Math.PI * 2);
+      ctx.fillStyle = PIN_CIRCLE;
+      ctx.fill();
+      ctx.fillStyle = PIN_FG;
+      ctx.textBaseline = "middle";
+      ctx.fillText(pinText, pinCx - pinTextW / 2, pinCy);
 
       // Description (wrapped, vertically padded).
       ctx.fillStyle = BODY;
