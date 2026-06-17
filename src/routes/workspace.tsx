@@ -354,6 +354,7 @@ function ExportCard({
         const blob = await renderPinScheduleJpeg(sortedPins, {
           scheduleColumns,
           bodySize: pinDescSize,
+          fontFamily: pinFontFamily,
           width: 900,
           quality: 0.6,
         });
