@@ -16,6 +16,8 @@ export interface PinScheduleOptions {
   quality?: number;
   /** Body/description font size in px (default 22). */
   bodySize?: number;
+  /** Font family stack for header + body. */
+  fontFamily?: string;
 }
 
 
@@ -51,9 +53,10 @@ export async function renderPinScheduleJpeg(
   const rowPadY = Math.round(bodySize * 0.73);
   const headerH = Math.round(bodySize * 2.55);
 
-  const bodyFont = `${bodySize}px Calibri, "Carlito", Arial, sans-serif`;
-  const pinFont = `700 ${pinSize}px Calibri, "Carlito", Arial, sans-serif`;
-  const headerFont = `700 ${headerSize}px Calibri, "Carlito", Arial, sans-serif`;
+  const ff = opts.fontFamily ?? `Calibri, "Carlito", Arial, sans-serif`;
+  const bodyFont = `${bodySize}px ${ff}`;
+  const pinFont = `700 ${pinSize}px ${ff}`;
+  const headerFont = `700 ${headerSize}px ${ff}`;
 
 
   const sorted = [...pins].sort(
