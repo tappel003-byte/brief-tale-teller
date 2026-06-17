@@ -44,8 +44,16 @@ const FIXED_PAD_Y = 80; // px — constant outer white border, top/bottom
 
 function gridFor(perPage: number): { cols: number; rows: number } {
   switch (perPage) {
+    case 1: return { cols: 1, rows: 1 };
+    case 2: return { cols: 2, rows: 1 };
+    case 3: return { cols: 3, rows: 1 };
+    case 4: return { cols: 2, rows: 2 };
+    case 5: return { cols: 5, rows: 1 };
     case 6: return { cols: 3, rows: 2 };
+    case 7:
     case 8: return { cols: 4, rows: 2 };
+    case 9: return { cols: 3, rows: 3 };
+    case 11:
     case 12: return { cols: 4, rows: 3 };
     case 10:
     default: return { cols: 5, rows: 2 };
@@ -70,11 +78,9 @@ export async function renderPhotoPlates(
     pages.push(photos.slice(i, i + perPage));
   }
 
-  const pageOpts: PageOpts = {
+  const baseOpts = {
     W,
     H,
-    cols,
-    rows,
     quality: opts.quality ?? 0.9,
     fontFamily: opts.fontFamily ?? `Calibri, "Carlito", Arial, sans-serif`,
     labelSize: opts.labelSize ?? 22,
@@ -87,6 +93,10 @@ export async function renderPhotoPlates(
   const results: PlateResult[] = [];
   for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
     const page = pages[pageIdx];
+    // Scale the grid to the actual photo count on this page so a short final
+    // page (or a small total set) fills the canvas instead of leaving big gaps.
+    const pageGrid = page.length < perPage ? gridFor(page.length) : { cols, rows };
+    const pageOpts: PageOpts = { ...baseOpts, cols: pageGrid.cols, rows: pageGrid.rows };
     const blob = await renderPage(
       page,
       page.map((p) => loaded[photos.indexOf(p)]),
