@@ -306,8 +306,9 @@ function ExportCard({
   const [busy, setBusy] = useState(false);
   const [previewUrls, setPreviewUrls] = useState<{
     schedule?: string;
-    plate?: string;
+    plates?: string[];
   }>({});
+  const [previewPage, setPreviewPage] = useState(0);
 
   const effectivePerPage = perPage || autoPerPage(photoItems.length);
   const plateCount = photoItems.length
@@ -367,16 +368,22 @@ function ExportCard({
           height: 800,
           quality: 0.6,
         });
-        if (plates[0]) next.plate = URL.createObjectURL(plates[0].blob);
+        next.plates = plates.map((p) => URL.createObjectURL(p.blob));
       }
       setPreviewUrls((prev) => {
         // revoke old URLs to avoid memory leaks
         if (prev.schedule && prev.schedule !== next.schedule)
           URL.revokeObjectURL(prev.schedule);
-        if (prev.plate && prev.plate !== next.plate)
-          URL.revokeObjectURL(prev.plate);
+        if (prev.plates) {
+          for (const url of prev.plates) {
+            if (!next.plates || !next.plates.includes(url)) {
+              URL.revokeObjectURL(url);
+            }
+          }
+        }
         return next;
       });
+      setPreviewPage(0);
     } catch {
       /* preview failures are silent */
     }
@@ -609,27 +616,47 @@ function ExportCard({
           <figure className="space-y-1.5">
             <div className="flex items-center justify-between gap-2">
               <figcaption className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
-                Photo plate · page 1 of {plateCount || 1}
+                Photo plate · page {(previewUrls.plates?.length ? previewPage + 1 : 1)} of {plateCount || 1}
               </figcaption>
-              <label className="text-[11px] font-mono text-muted-foreground inline-flex items-center gap-1.5">
-                Layout
-                <select
-                  value={perPage}
-                  onChange={(e) => setPerPage(parseInt(e.target.value))}
-                  className="text-xs rounded-sm border border-input bg-background px-1.5 py-0.5"
-                >
-                  <option value={0}>Auto ({autoPerPage(photoItems.length)})</option>
-                  <option value={6}>6 (3×2)</option>
-                  <option value={8}>8 (4×2)</option>
-                  <option value={10}>10 (5×2)</option>
-                  <option value={12}>12 (4×3)</option>
-                </select>
-              </label>
+              <div className="flex items-center gap-2">
+                {previewUrls.plates && previewUrls.plates.length > 1 && (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setPreviewPage((p) => Math.max(0, p - 1))}
+                      disabled={previewPage === 0}
+                      className="text-[11px] rounded-sm border border-input bg-background px-1.5 py-0.5 hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      ←
+                    </button>
+                    <button
+                      onClick={() => setPreviewPage((p) => Math.min((previewUrls.plates?.length ?? 1) - 1, p + 1))}
+                      disabled={previewPage >= (previewUrls.plates?.length ?? 1) - 1}
+                      className="text-[11px] rounded-sm border border-input bg-background px-1.5 py-0.5 hover:bg-accent disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      →
+                    </button>
+                  </div>
+                )}
+                <label className="text-[11px] font-mono text-muted-foreground inline-flex items-center gap-1.5">
+                  Layout
+                  <select
+                    value={perPage}
+                    onChange={(e) => setPerPage(parseInt(e.target.value))}
+                    className="text-xs rounded-sm border border-input bg-background px-1.5 py-0.5"
+                  >
+                    <option value={0}>Auto ({autoPerPage(photoItems.length)})</option>
+                    <option value={6}>6 (3×2)</option>
+                    <option value={8}>8 (4×2)</option>
+                    <option value={10}>10 (5×2)</option>
+                    <option value={12}>12 (4×3)</option>
+                  </select>
+                </label>
+              </div>
             </div>
-            {previewUrls.plate ? (
+            {previewUrls.plates && previewUrls.plates[previewPage] ? (
               <img
-                src={previewUrls.plate}
-                alt="Photo plate preview"
+                src={previewUrls.plates[previewPage]}
+                alt={`Photo plate preview page ${previewPage + 1}`}
                 className="w-full rounded-sm border bg-white shadow-sm"
               />
             ) : (
