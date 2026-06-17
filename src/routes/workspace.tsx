@@ -427,192 +427,226 @@ function ExportCard({
   }
 
   return (
-    <div className="rounded-md border bg-panel p-4">
-      <div className="flex items-center gap-2 mb-2">
-        <Download className="size-4 text-primary" />
-        <h3 className="font-medium">Job Export</h3>
-      </div>
-      <p className="text-xs text-muted-foreground mb-4">
-        One zip with the map, pin schedule(s), and all photo plates.
-        Drop the folder into your 11×17 template.
-      </p>
-
-      <div className="grid gap-4 md:grid-cols-2 mb-4">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-            Pin Schedule
+    <div className="space-y-4">
+      {/* HERO: live preview is the headline. */}
+      <div className="rounded-md border bg-canvas/60 p-4 shadow-[var(--shadow-canvas)]">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+              Live preview
+            </div>
+            <div className="text-sm font-medium">
+              What gets dropped into your template
+            </div>
           </div>
-          <label className="block text-sm mb-1">Schedule layout</label>
-          <select
-            value={scheduleColumns}
-            onChange={(e) => {
-              const v = parseInt(e.target.value, 10);
-              setScheduleColumns((v === 2 || v === 3 || v === 4) ? v : 1);
-            }}
-            className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-          >
-            <option value={1}>1 column</option>
-            <option value={2}>2 columns</option>
-            <option value={3}>3 columns</option>
-            <option value={4}>4 columns</option>
-          </select>
-        </div>
-
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-            Photo Plates
+          <div className="text-[11px] text-muted-foreground font-mono">
+            {plateCount} plate{plateCount === 1 ? "" : "s"} · {scheduleColumns}-col schedule
           </div>
-          <label className="block text-sm mb-1">Photos per page</label>
-          <select
-            value={perPage}
-            onChange={(e) => setPerPage(parseInt(e.target.value))}
-            className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-          >
-            <option value={0}>Auto ({autoPerPage(photoItems.length)})</option>
-            <option value={6}>6 (3×2)</option>
-            <option value={8}>8 (4×2)</option>
-            <option value={10}>10 (5×2)</option>
-            <option value={12}>12 (4×3)</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="grid gap-3 md:grid-cols-4 mb-4">
-        <div className="md:col-span-1">
-          <label className="block text-xs mb-1">Font</label>
-          <select
-            value={fontFamily}
-            onChange={(e) => setFontFamily(e.target.value)}
-            className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-          >
-            <option value={`Calibri, "Carlito", Arial, sans-serif`}>Calibri</option>
-            <option value={`Arial, sans-serif`}>Arial</option>
-            <option value={`"Helvetica Neue", Helvetica, Arial, sans-serif`}>Helvetica</option>
-            <option value={`Georgia, "Times New Roman", serif`}>Georgia</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs mb-1">Label px</label>
-          <input
-            type="number"
-            min={10}
-            max={48}
-            value={labelSize}
-            onChange={(e) => setLabelSize(parseInt(e.target.value) || 22)}
-            className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-          />
-        </div>
-        <div>
-          <label className="block text-xs mb-1">Caption px</label>
-          <input
-            type="number"
-            min={8}
-            max={40}
-            value={captionSize}
-            onChange={(e) => setCaptionSize(parseInt(e.target.value) || 20)}
-            className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-          />
-        </div>
-        <div>
-          <label className="block text-xs mb-1">Max lines</label>
-          <input
-            type="number"
-            min={1}
-            max={8}
-            value={maxLines}
-            onChange={(e) => setMaxLines(parseInt(e.target.value) || 4)}
-            className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-          />
-        </div>
-      </div>
-
-      <div className="border-t pt-3 mb-3">
-        <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">
-          Map / plan file
-        </label>
-        {mapCandidates.length > 0 ? (
-          <select
-            value={mapFilename ?? ""}
-            onChange={(e) => {
-              if (!coverSection) return;
-              updateSection(coverSection.id, { planFilename: e.target.value || undefined });
-            }}
-            className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-          >
-            <option value="">— none —</option>
-            {mapCandidates.map((fn) => (
-              <option key={fn} value={fn}>
-                {fn}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <div className="text-xs text-amber-600 font-mono">
-            No non-photo files found in import.
-          </div>
-        )}
-      </div>
-
-      <div className="text-xs text-muted-foreground font-mono mb-3 space-y-0.5">
-        <div>
-          map:{" "}
-          {mapAsset ? (
-            mapFilename
-          ) : (
-            <span className="text-amber-600">
-              {mapCandidates.length > 0 ? "pick one above" : "not found in import"}
-            </span>
-          )}
-        </div>
-        <div>pin schedule: 1 JPEG ({scheduleColumns} column{scheduleColumns === 1 ? "" : "s"})</div>
-        <div>photo plates: {plateCount} JPEG{plateCount === 1 ? "" : "s"} ({photoItems.length} photos)</div>
-      </div>
-
-      {/* Preview Pane */}
-      <div className="border-t pt-4 mb-4">
-        <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-          Preview
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          {previewUrls.schedule ? (
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">Pin Schedule</div>
+          <figure className="space-y-1.5">
+            <figcaption className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+              Pin schedule
+            </figcaption>
+            {previewUrls.schedule ? (
               <img
                 src={previewUrls.schedule}
                 alt="Pin schedule preview"
-                className="w-full rounded-sm border bg-white"
+                className="w-full rounded-sm border bg-white shadow-sm"
               />
-            </div>
-          ) : (
-            <div className="text-xs text-muted-foreground italic">No pins to preview</div>
-          )}
-          {previewUrls.plate ? (
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">Photo Plate (page 1)</div>
+            ) : (
+              <div className="aspect-[3/4] rounded-sm border border-dashed flex items-center justify-center text-xs text-muted-foreground italic bg-background/40">
+                No pins yet
+              </div>
+            )}
+          </figure>
+          <figure className="space-y-1.5">
+            <figcaption className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground">
+              Photo plate · page 1 of {plateCount || 1}
+            </figcaption>
+            {previewUrls.plate ? (
               <img
                 src={previewUrls.plate}
                 alt="Photo plate preview"
-                className="w-full rounded-sm border bg-white"
+                className="w-full rounded-sm border bg-white shadow-sm"
               />
+            ) : (
+              <div className="aspect-[7/4] rounded-sm border border-dashed flex items-center justify-center text-xs text-muted-foreground italic bg-background/40">
+                No photos yet
+              </div>
+            )}
+          </figure>
+        </div>
+
+        <div className="mt-4 pt-4 border-t flex flex-wrap items-center justify-between gap-3">
+          <div className="text-xs text-muted-foreground font-mono space-y-0.5">
+            <div>
+              map:{" "}
+              {mapAsset ? (
+                <span className="text-foreground">{mapFilename}</span>
+              ) : (
+                <span className="text-amber-600">
+                  {mapCandidates.length > 0 ? "pick one below" : "not found in import"}
+                </span>
+              )}
             </div>
-          ) : (
-            <div className="text-xs text-muted-foreground italic">No photos to preview</div>
-          )}
+            <div>
+              output: {plateCount + (pins.length ? 1 : 0) + (mapAsset ? 1 : 0)} JPEG{plateCount + 1 === 1 ? "" : "s"} · 1 ZIP
+            </div>
+          </div>
+          <button
+            onClick={onExport}
+            disabled={busy || (pins.length === 0 && photoItems.length === 0)}
+            className="inline-flex items-center gap-2 rounded-sm bg-primary text-primary-foreground px-4 py-2 text-sm font-semibold hover:bg-primary/90 transition-colors disabled:opacity-50 shadow-sm"
+          >
+            {busy ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Download className="size-4" />
+            )}
+            Export ZIP
+          </button>
         </div>
       </div>
 
-      <button
-        onClick={onExport}
-        disabled={busy || (pins.length === 0 && photoItems.length === 0)}
-        className="inline-flex items-center gap-2 rounded-sm bg-primary text-primary-foreground px-3 py-1.5 text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-      >
-        {busy ? (
-          <Loader2 className="size-4 animate-spin" />
-        ) : (
-          <Download className="size-4" />
-        )}
-        Export ZIP
-      </button>
+      {/* Settings — secondary, organized by what they affect. */}
+      <div className="rounded-md border bg-panel/60 p-4">
+        <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-3">
+          Layout settings · preview updates as you change them
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          {/* Map */}
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Map / plan file
+            </label>
+            {mapCandidates.length > 0 ? (
+              <select
+                value={mapFilename ?? ""}
+                onChange={(e) => {
+                  if (!coverSection) return;
+                  updateSection(coverSection.id, { planFilename: e.target.value || undefined });
+                }}
+                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1.5"
+              >
+                <option value="">— none —</option>
+                {mapCandidates.map((fn) => (
+                  <option key={fn} value={fn}>
+                    {fn}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="text-xs text-amber-600 font-mono">
+                No non-photo files found in import.
+              </div>
+            )}
+            <p className="text-[11px] text-muted-foreground">
+              Exported as-is so you can resize it inside your template.
+            </p>
+          </div>
+
+          {/* Schedule */}
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Pin schedule columns
+            </label>
+            <select
+              value={scheduleColumns}
+              onChange={(e) => {
+                const v = parseInt(e.target.value, 10);
+                setScheduleColumns((v === 2 || v === 3 || v === 4) ? v : 1);
+              }}
+              className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1.5"
+            >
+              <option value={1}>1 column</option>
+              <option value={2}>2 columns</option>
+              <option value={3}>3 columns</option>
+              <option value={4}>4 columns</option>
+            </select>
+            <p className="text-[11px] text-muted-foreground">
+              More columns = shorter, wider schedule.
+            </p>
+          </div>
+
+          {/* Plates */}
+          <div className="space-y-1.5">
+            <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Photos per plate
+            </label>
+            <select
+              value={perPage}
+              onChange={(e) => setPerPage(parseInt(e.target.value))}
+              className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1.5"
+            >
+              <option value={0}>Auto ({autoPerPage(photoItems.length)})</option>
+              <option value={6}>6 (3×2)</option>
+              <option value={8}>8 (4×2)</option>
+              <option value={10}>10 (5×2)</option>
+              <option value={12}>12 (4×3)</option>
+            </select>
+            <p className="text-[11px] text-muted-foreground">
+              {photoItems.length} photos → {plateCount} plate{plateCount === 1 ? "" : "s"}.
+            </p>
+          </div>
+        </div>
+
+        <details className="mt-4 group">
+          <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground select-none inline-flex items-center gap-1">
+            <span className="group-open:rotate-90 transition-transform inline-block">▸</span>
+            Typography (font, sizes, caption lines)
+          </summary>
+          <div className="grid gap-3 md:grid-cols-4 mt-3">
+            <div>
+              <label className="block text-[11px] mb-1 text-muted-foreground">Font</label>
+              <select
+                value={fontFamily}
+                onChange={(e) => setFontFamily(e.target.value)}
+                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+              >
+                <option value={`Calibri, "Carlito", Arial, sans-serif`}>Calibri</option>
+                <option value={`Arial, sans-serif`}>Arial</option>
+                <option value={`"Helvetica Neue", Helvetica, Arial, sans-serif`}>Helvetica</option>
+                <option value={`Georgia, "Times New Roman", serif`}>Georgia</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] mb-1 text-muted-foreground">Label px</label>
+              <input
+                type="number"
+                min={10}
+                max={48}
+                value={labelSize}
+                onChange={(e) => setLabelSize(parseInt(e.target.value) || 22)}
+                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] mb-1 text-muted-foreground">Caption px</label>
+              <input
+                type="number"
+                min={8}
+                max={40}
+                value={captionSize}
+                onChange={(e) => setCaptionSize(parseInt(e.target.value) || 20)}
+                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] mb-1 text-muted-foreground">Max caption lines</label>
+              <input
+                type="number"
+                min={1}
+                max={8}
+                value={maxLines}
+                onChange={(e) => setMaxLines(parseInt(e.target.value) || 4)}
+                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+              />
+            </div>
+          </div>
+        </details>
+      </div>
     </div>
   );
 }
