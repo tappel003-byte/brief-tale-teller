@@ -301,6 +301,7 @@ function ExportCard({
   );
   const [labelSize, setLabelSize] = useState<number>(22);
   const [captionSize, setCaptionSize] = useState<number>(20);
+  const [pinDescSize, setPinDescSize] = useState<number>(22);
   const [maxLines, setMaxLines] = useState<number>(4);
   const [busy, setBusy] = useState(false);
   const [previewUrls, setPreviewUrls] = useState<{
@@ -337,7 +338,7 @@ function ExportCard({
     }, 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scheduleColumns, perPage, fontFamily, captionFontFamily, labelSize, captionSize, maxLines]);
+  }, [scheduleColumns, perPage, fontFamily, captionFontFamily, labelSize, captionSize, pinDescSize, maxLines]);
 
   async function renderPreview() {
     try {
@@ -348,6 +349,7 @@ function ExportCard({
       if (sortedPins.length) {
         const blob = await renderPinScheduleJpeg(sortedPins, {
           scheduleColumns,
+          bodySize: pinDescSize,
           width: 900,
           quality: 0.6,
         });
@@ -400,7 +402,7 @@ function ExportCard({
       const sortedPins = [...pins].sort(
         (a, b) => (parseInt(a.location) || 9999) - (parseInt(b.location) || 9999),
       );
-      const scheduleBlob = await renderPinScheduleJpeg(sortedPins, { scheduleColumns });
+      const scheduleBlob = await renderPinScheduleJpeg(sortedPins, { scheduleColumns, bodySize: pinDescSize });
       zip.file(`${base}-pin-schedule.jpg`, scheduleBlob);
 
       // 3. Photo plates — all pages.
@@ -479,7 +481,7 @@ function ExportCard({
             <span className="group-open:rotate-90 transition-transform inline-block">▸</span>
             Typography (font, sizes, caption lines)
           </summary>
-          <div className="grid gap-3 md:grid-cols-5 mt-3">
+          <div className="grid gap-3 md:grid-cols-6 mt-3">
             <div>
               <label className="block text-[11px] mb-1 text-muted-foreground">Label font</label>
               <select
@@ -525,6 +527,17 @@ function ExportCard({
                 max={40}
                 value={captionSize}
                 onChange={(e) => setCaptionSize(parseInt(e.target.value) || 20)}
+                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] mb-1 text-muted-foreground">Pin desc px</label>
+              <input
+                type="number"
+                min={10}
+                max={48}
+                value={pinDescSize}
+                onChange={(e) => setPinDescSize(parseInt(e.target.value) || 22)}
                 className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
               />
             </div>

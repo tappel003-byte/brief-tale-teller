@@ -14,7 +14,10 @@ export interface PinScheduleOptions {
   /** Number of side-by-side schedule panels. Each panel remains PIN | DESCRIPTION. */
   scheduleColumns?: 1 | 2 | 3 | 4;
   quality?: number;
+  /** Body/description font size in px (default 22). */
+  bodySize?: number;
 }
+
 
 // Locked palette — cream + red circles, less corporate.
 const HEADER_BG = "#1a1a1a";
@@ -41,16 +44,17 @@ export async function renderPinScheduleJpeg(
   const descOffset = padX + pinColW + gutter;
   const descW = panelW - descOffset - padX;
 
-  const bodySize = 22;
-  const pinSize = 18;
-  const headerSize = 20;
+  const bodySize = opts.bodySize ?? 22;
+  const pinSize = Math.round(bodySize * 0.82);
+  const headerSize = Math.round(bodySize * 0.91);
   const lineH = Math.round(bodySize * 1.4);
-  const rowPadY = 16;
-  const headerH = 56;
+  const rowPadY = Math.round(bodySize * 0.73);
+  const headerH = Math.round(bodySize * 2.55);
 
   const bodyFont = `${bodySize}px Calibri, "Carlito", Arial, sans-serif`;
   const pinFont = `700 ${pinSize}px Calibri, "Carlito", Arial, sans-serif`;
   const headerFont = `700 ${headerSize}px Calibri, "Carlito", Arial, sans-serif`;
+
 
   const sorted = [...pins].sort(
     (a, b) => parseLoc(a.location) - parseLoc(b.location),
