@@ -155,7 +155,7 @@ async function renderPage(
   const photoH = Math.max(0, cellH - textBlockH - o.photoLabelGap);
 
   const labelFont = `bold ${labelSize}px ${o.fontFamily}`;
-  const captionFont = `${captionSize}px ${o.fontFamily}`;
+  const captionFont = `${captionSize}px ${o.captionFontFamily || o.fontFamily}`;
 
   for (let i = 0; i < items.length; i++) {
     const row = Math.floor(i / o.cols);
