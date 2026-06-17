@@ -479,12 +479,25 @@ function ExportCard({
             <span className="group-open:rotate-90 transition-transform inline-block">▸</span>
             Typography (font, sizes, caption lines)
           </summary>
-          <div className="grid gap-3 md:grid-cols-4 mt-3">
+          <div className="grid gap-3 md:grid-cols-5 mt-3">
             <div>
-              <label className="block text-[11px] mb-1 text-muted-foreground">Font</label>
+              <label className="block text-[11px] mb-1 text-muted-foreground">Label font</label>
               <select
                 value={fontFamily}
                 onChange={(e) => setFontFamily(e.target.value)}
+                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+              >
+                <option value={`Calibri, "Carlito", Arial, sans-serif`}>Calibri</option>
+                <option value={`Arial, sans-serif`}>Arial</option>
+                <option value={`"Helvetica Neue", Helvetica, Arial, sans-serif`}>Helvetica</option>
+                <option value={`Georgia, "Times New Roman", serif`}>Georgia</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-[11px] mb-1 text-muted-foreground">Caption font</label>
+              <select
+                value={captionFontFamily}
+                onChange={(e) => setCaptionFontFamily(e.target.value)}
                 className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
               >
                 <option value={`Calibri, "Carlito", Arial, sans-serif`}>Calibri</option>
