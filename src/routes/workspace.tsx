@@ -407,6 +407,7 @@ function ExportCard({
       const plates = await renderPhotoPlates(photoItems, {
         perPage: perPage || undefined,
         fontFamily,
+        captionFontFamily,
         labelSize,
         captionSize,
         maxCaptionLines: maxLines,
