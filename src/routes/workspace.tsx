@@ -481,7 +481,7 @@ function ExportCard({
             <span className="group-open:rotate-90 transition-transform inline-block">▸</span>
             Typography (font, sizes, caption lines)
           </summary>
-          <div className="grid gap-3 md:grid-cols-5 mt-3">
+          <div className="grid gap-3 md:grid-cols-6 mt-3">
             <div>
               <label className="block text-[11px] mb-1 text-muted-foreground">Label font</label>
               <select
@@ -527,6 +527,17 @@ function ExportCard({
                 max={40}
                 value={captionSize}
                 onChange={(e) => setCaptionSize(parseInt(e.target.value) || 20)}
+                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+              />
+            </div>
+            <div>
+              <label className="block text-[11px] mb-1 text-muted-foreground">Pin desc px</label>
+              <input
+                type="number"
+                min={10}
+                max={48}
+                value={pinDescSize}
+                onChange={(e) => setPinDescSize(parseInt(e.target.value) || 22)}
                 className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
               />
             </div>
