@@ -1,14 +1,18 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { z } from "zod";
 import JSZip from "jszip";
 import {
   ArrowLeft,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   CircleAlert,
   Download,
   Loader2,
+  Plus,
   Sparkles,
+  X,
 } from "lucide-react";
 
 import { useReportStore } from "@/lib/store";
@@ -335,28 +339,17 @@ function ExportCard({
     [project.assets],
   );
 
-  // Auto-preview whenever settings change (debounced).
-  useEffect(() => {
-    if (!pins.length && !photoItems.length) return;
-    const t = setTimeout(() => {
-      void renderPreview();
-    }, 300);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scheduleColumns, perPage, fontFamily, captionFontFamily, pinFontFamily, labelSize, captionSize, pinDescSize, maxLines, pins]);
-
-  async function renderPreview() {
+  const renderPreview = useCallback(async () => {
     try {
       const sortedPins = [...pins].sort(
         (a, b) => (parseInt(a.location) || 9999) - (parseInt(b.location) || 9999),
       );
-      const next: typeof previewUrls = {};
+      const next: { schedule?: string; plates?: string[] } = {};
       if (sortedPins.length) {
         const blob = await renderPinScheduleJpeg(sortedPins, {
           scheduleColumns,
           bodySize: pinDescSize,
           fontFamily: pinFontFamily,
-          
           width: 900,
           quality: 0.6,
         });
@@ -393,7 +386,16 @@ function ExportCard({
     } catch {
       /* preview failures are silent */
     }
-  }
+  }, [pins, photoItems, scheduleColumns, perPage, pinDescSize, pinFontFamily, fontFamily, captionFontFamily, labelSize, captionSize, maxLines]);
+
+  // Auto-preview whenever settings change (debounced).
+  useEffect(() => {
+    if (!pins.length && !photoItems.length) return;
+    const t = setTimeout(() => {
+      void renderPreview();
+    }, 300);
+    return () => clearTimeout(t);
+  }, [renderPreview]);
 
   async function onExport() {
     setBusy(true);
@@ -489,7 +491,7 @@ function ExportCard({
         </div>
 
 
-        <details className="mt-4 group" open>
+        <details className="mt-4 group">
           <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground select-none inline-flex items-center gap-1">
             <span className="group-open:rotate-90 transition-transform inline-block">▸</span>
             Typography
@@ -681,7 +683,9 @@ function ExportCard({
                   >
                     <option value={0}>Auto ({autoPerPage(photoItems.length)})</option>
                     <option value={6}>6 (3×2)</option>
+                    <option value={7}>7 (4×2)</option>
                     <option value={8}>8 (4×2)</option>
+                    <option value={9}>9 (3×3)</option>
                     <option value={10}>10 (5×2)</option>
                     <option value={12}>12 (4×3)</option>
                   </select>
@@ -818,48 +822,50 @@ function PinEditor({
       <div className="max-h-[60vh] overflow-auto thin-scroll">
         {sorted.map((pin) => {
           const isOpen = expanded.has(pin.id);
+          const effectiveColor: "red" | "grey" =
+            pin.colorOverride ??
+            ((pin.type || "").toLowerCase().includes("exterior") ? "grey" : "red");
           return (
             <div key={pin.id} className="border-b last:border-0">
               <div className="flex items-center">
-              {(() => {
-                const effective: "red" | "grey" =
-                  pin.colorOverride ??
-                  ((pin.type || "").toLowerCase().includes("exterior") ? "grey" : "red");
-                const next: "red" | "grey" = effective === "red" ? "grey" : "red";
-                return (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      updatePin(pin.id, { colorOverride: next });
-                    }}
-                    title={`Pin color: ${effective}${pin.colorOverride ? " (override)" : " (auto)"} — click to switch`}
-                    className="ml-3 size-5 rounded-full shrink-0 border border-black/20 shadow-sm transition-transform hover:scale-110"
-                    style={{ backgroundColor: effective === "grey" ? "#718096" : "#c53030" }}
-                  />
-                );
-              })()}
-              <button
-                onClick={() =>
-                  setExpanded((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(pin.id)) next.delete(pin.id);
-                    else next.add(pin.id);
-                    return next;
-                  })
-                }
-                className="flex-1 flex items-center gap-3 px-4 py-3 text-left hover:bg-accent/30 transition-colors"
-              >
-                <span className="font-mono text-sm font-semibold w-8 shrink-0">
-                  {pin.location}
-                </span>
-                <span className="text-sm flex-1 truncate text-left">
-                  {pin.cleanedDescription || pin.rawDescription || "No description"}
-                </span>
-                <span className="text-xs text-muted-foreground font-mono shrink-0">
-                  {pin.photos.length} photo{pin.photos.length === 1 ? "" : "s"}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    updatePin(pin.id, {
+                      colorOverride: effectiveColor === "red" ? "grey" : "red",
+                    });
+                  }}
+                  title={`Pin color: ${effectiveColor}${pin.colorOverride ? " (override)" : " (auto)"} — click to switch`}
+                  className="ml-3 size-5 rounded-full shrink-0 border border-black/20 shadow-sm transition-transform hover:scale-110"
+                  style={{ backgroundColor: effectiveColor === "grey" ? "#718096" : "#c53030" }}
+                />
+                <button
+                  onClick={() =>
+                    setExpanded((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(pin.id)) next.delete(pin.id);
+                      else next.add(pin.id);
+                      return next;
+                    })
+                  }
+                  className="flex-1 flex items-center gap-3 px-4 py-3 text-left hover:bg-accent/30 transition-colors"
+                >
+                  <span className="font-mono text-sm font-semibold w-8 shrink-0">
+                    {pin.location}
+                  </span>
+                  <span className="text-sm flex-1 truncate text-left">
+                    {pin.cleanedDescription || pin.rawDescription || "No description"}
+                  </span>
+                  {pin.type && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono uppercase shrink-0">
+                      {pin.type}
+                    </span>
+                  )}
+                  <span className="text-xs text-muted-foreground font-mono shrink-0">
+                    {pin.photos.length} photo{pin.photos.length === 1 ? "" : "s"}
+                  </span>
+                </button>
               </div>
 
 
@@ -931,27 +937,27 @@ function PinEditor({
                                 {idx > 0 && (
                                   <button
                                     onClick={() => reorderPhoto(pin.id, idx, idx - 1)}
-                                    className="bg-black/60 text-white text-[10px] px-1 hover:bg-black"
+                                    className="bg-black/60 text-white p-0.5 hover:bg-black"
                                     title="Move left"
                                   >
-                                    ←
+                                    <ChevronLeft className="size-3" />
                                   </button>
                                 )}
                                 {idx < pin.photos.length - 1 && (
                                   <button
                                     onClick={() => reorderPhoto(pin.id, idx, idx + 1)}
-                                    className="bg-black/60 text-white text-[10px] px-1 hover:bg-black"
+                                    className="bg-black/60 text-white p-0.5 hover:bg-black"
                                     title="Move right"
                                   >
-                                    →
+                                    <ChevronRight className="size-3" />
                                   </button>
                                 )}
                                 <button
                                   onClick={() => removePhotoFromPin(pin.id, idx)}
-                                  className="bg-black/60 text-white text-[10px] px-1 hover:bg-destructive"
+                                  className="bg-black/60 text-white p-0.5 hover:bg-destructive"
                                   title="Remove"
                                 >
-                                  ×
+                                  <X className="size-3" />
                                 </button>
                               </div>
                             </div>
@@ -960,10 +966,11 @@ function PinEditor({
                         <button
                           type="button"
                           onClick={() => setPicker({ pinId: pin.id, idx: "add" })}
-                          className="w-20 h-20 rounded-sm border-2 border-dashed border-muted-foreground/40 text-xs text-muted-foreground hover:bg-accent/30 hover:text-foreground"
+                          className="w-20 h-20 rounded-sm border-2 border-dashed border-muted-foreground/40 text-xs text-muted-foreground hover:bg-accent/30 hover:text-foreground flex flex-col items-center justify-center gap-0.5"
                           title="Add photo"
                         >
-                          + Add
+                          <Plus className="size-4" />
+                          Add
                         </button>
                       </div>
                     </div>
