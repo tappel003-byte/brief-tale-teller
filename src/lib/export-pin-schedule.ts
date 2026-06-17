@@ -36,6 +36,7 @@ function pinColorFor(type: string, mode: PinScheduleOptions["pinColorMode"]): st
   return PIN_CIRCLE_RED;
 }
 
+export async function renderPinScheduleJpeg(
   pins: Pin[],
   opts: PinScheduleOptions = {},
 ): Promise<Blob> {
