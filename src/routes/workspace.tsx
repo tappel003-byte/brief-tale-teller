@@ -584,7 +584,7 @@ function ExportCard({
         </div>
 
 
-        <details className="mt-4 group">
+        <details className="mt-4 group" open>
           <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground select-none inline-flex items-center gap-1">
             <span className="group-open:rotate-90 transition-transform inline-block">▸</span>
             Typography (font, sizes, caption lines)
