@@ -305,6 +305,7 @@ function ExportCard({
   const [labelSize, setLabelSize] = useState<number>(22);
   const [captionSize, setCaptionSize] = useState<number>(20);
   const [pinDescSize, setPinDescSize] = useState<number>(22);
+  const [pinColorMode, setPinColorMode] = useState<"auto" | "red" | "grey">("auto");
   const [maxLines, setMaxLines] = useState<number>(4);
   const [busy, setBusy] = useState(false);
   const [previewUrls, setPreviewUrls] = useState<{
@@ -342,7 +343,7 @@ function ExportCard({
     }, 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scheduleColumns, perPage, fontFamily, captionFontFamily, pinFontFamily, labelSize, captionSize, pinDescSize, maxLines]);
+  }, [scheduleColumns, perPage, fontFamily, captionFontFamily, pinFontFamily, labelSize, captionSize, pinDescSize, pinColorMode, maxLines]);
 
   async function renderPreview() {
     try {
@@ -355,6 +356,7 @@ function ExportCard({
           scheduleColumns,
           bodySize: pinDescSize,
           fontFamily: pinFontFamily,
+          pinColorMode,
           width: 900,
           quality: 0.6,
         });
@@ -413,7 +415,7 @@ function ExportCard({
       const sortedPins = [...pins].sort(
         (a, b) => (parseInt(a.location) || 9999) - (parseInt(b.location) || 9999),
       );
-      const scheduleBlob = await renderPinScheduleJpeg(sortedPins, { scheduleColumns, bodySize: pinDescSize, fontFamily: pinFontFamily });
+      const scheduleBlob = await renderPinScheduleJpeg(sortedPins, { scheduleColumns, bodySize: pinDescSize, fontFamily: pinFontFamily, pinColorMode });
       zip.file(`${base}-pin-schedule.jpg`, scheduleBlob);
 
       // 3. Photo plates — all pages.
@@ -522,6 +524,18 @@ function ExportCard({
                   onChange={(e) => setPinDescSize(parseInt(e.target.value) || 22)}
                   className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
                 />
+              </div>
+              <div>
+                <label className="block text-[11px] mb-1 text-muted-foreground">Pin color</label>
+                <select
+                  value={pinColorMode}
+                  onChange={(e) => setPinColorMode(e.target.value as "auto" | "red" | "grey")}
+                  className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+                >
+                  <option value="auto">Auto (exterior grey)</option>
+                  <option value="red">All red</option>
+                  <option value="grey">All grey</option>
+                </select>
               </div>
             </div>
           </div>

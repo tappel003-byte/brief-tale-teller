@@ -1,11 +1,3 @@
-// Render the pin schedule as a JPEG of the locked PIN | DESCRIPTION table.
-//
-// Each schedule panel is PIN | DESCRIPTION (with photos inlined as "(Photos N–M)").
-// The schedule can render as one vertical panel or split into two side-by-side
-// panels for fitting a tall portrait/right-column slide area.
-// Cream alternating stripes, dark header, red circles for PINs.
-// White background, natural width — no 11×17 forcing.
-
 import type { Pin } from "./types";
 
 export interface PinScheduleOptions {
@@ -18,16 +10,31 @@ export interface PinScheduleOptions {
   bodySize?: number;
   /** Font family stack for header + body. */
   fontFamily?: string;
+  /** Pin circle color mode.
+   *  "auto"  = exterior grey, interior red (default)
+   *  "red"   = all red
+   *  "grey"  = all grey
+   */
+  pinColorMode?: "auto" | "red" | "grey";
 }
-
 
 // Locked palette — cream + red circles, less corporate.
 const HEADER_BG = "#1a1a1a";
 const HEADER_FG = "#ffffff";
 const STRIPE = "#f5f0e8";
 const BODY = "#1a1a1a";
-const PIN_CIRCLE = "#c53030";
+const PIN_CIRCLE_RED = "#c53030";
+const PIN_CIRCLE_GREY = "#718096";
 const PIN_FG = "#ffffff";
+
+function pinColorFor(type: string, mode: PinScheduleOptions["pinColorMode"]): string {
+  if (mode === "grey") return PIN_CIRCLE_GREY;
+  if (mode === "red") return PIN_CIRCLE_RED;
+  // auto: exterior = grey, everything else = red
+  const t = type.trim().toLowerCase();
+  if (t === "exterior" || t.includes("exterior")) return PIN_CIRCLE_GREY;
+  return PIN_CIRCLE_RED;
+}
 
 export async function renderPinScheduleJpeg(
   pins: Pin[],
@@ -115,7 +122,7 @@ export async function renderPinScheduleJpeg(
         ctx.fillRect(panelX, y, panelW, r.height);
       }
 
-      // PIN (white on red circle, 2-digit).
+      // PIN (white circle, 2-digit, color depends on type & mode).
       const pinText = pad2(r.p.location);
       ctx.font = pinFont;
       const pinTextW = ctx.measureText(pinText).width;
@@ -124,7 +131,7 @@ export async function renderPinScheduleJpeg(
       const pinCy = y + r.height / 2;
       ctx.beginPath();
       ctx.arc(pinCx, pinCy, circleR, 0, Math.PI * 2);
-      ctx.fillStyle = PIN_CIRCLE;
+      ctx.fillStyle = pinColorFor(r.p.type, opts.pinColorMode);
       ctx.fill();
       ctx.fillStyle = PIN_FG;
       ctx.textBaseline = "middle";
