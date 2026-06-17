@@ -299,6 +299,9 @@ function ExportCard({
   const [captionFontFamily, setCaptionFontFamily] = useState<string>(
     `Calibri, "Carlito", Arial, sans-serif`,
   );
+  const [pinFontFamily, setPinFontFamily] = useState<string>(
+    `Calibri, "Carlito", Arial, sans-serif`,
+  );
   const [labelSize, setLabelSize] = useState<number>(22);
   const [captionSize, setCaptionSize] = useState<number>(20);
   const [pinDescSize, setPinDescSize] = useState<number>(22);
