@@ -16,6 +16,8 @@ export interface PinScheduleOptions {
   quality?: number;
   /** Body/description font size in px (default 22). */
   bodySize?: number;
+  /** Font family stack for header + body. */
+  fontFamily?: string;
 }
 
 
