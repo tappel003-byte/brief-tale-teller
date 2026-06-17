@@ -544,13 +544,13 @@ function ExportCard({
         </div>
       </div>
 
-      {/* Settings — secondary, organized by what they affect. */}
+      {/* Settings — map picker + optional typography. */}
       <div className="rounded-md border bg-panel/60 p-4">
         <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-3">
-          Layout settings · preview updates as you change them
+          Other settings
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           {/* Map */}
           <div className="space-y-1.5">
             <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
@@ -581,51 +581,8 @@ function ExportCard({
               Exported as-is so you can resize it inside your template.
             </p>
           </div>
-
-          {/* Schedule */}
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Pin schedule columns
-            </label>
-            <select
-              value={scheduleColumns}
-              onChange={(e) => {
-                const v = parseInt(e.target.value, 10);
-                setScheduleColumns((v === 2 || v === 3 || v === 4) ? v : 1);
-              }}
-              className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1.5"
-            >
-              <option value={1}>1 column</option>
-              <option value={2}>2 columns</option>
-              <option value={3}>3 columns</option>
-              <option value={4}>4 columns</option>
-            </select>
-            <p className="text-[11px] text-muted-foreground">
-              More columns = shorter, wider schedule.
-            </p>
-          </div>
-
-          {/* Plates */}
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              Photos per plate
-            </label>
-            <select
-              value={perPage}
-              onChange={(e) => setPerPage(parseInt(e.target.value))}
-              className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1.5"
-            >
-              <option value={0}>Auto ({autoPerPage(photoItems.length)})</option>
-              <option value={6}>6 (3×2)</option>
-              <option value={8}>8 (4×2)</option>
-              <option value={10}>10 (5×2)</option>
-              <option value={12}>12 (4×3)</option>
-            </select>
-            <p className="text-[11px] text-muted-foreground">
-              {photoItems.length} photos → {plateCount} plate{plateCount === 1 ? "" : "s"}.
-            </p>
-          </div>
         </div>
+
 
         <details className="mt-4 group">
           <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground select-none inline-flex items-center gap-1">
