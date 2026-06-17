@@ -26,6 +26,8 @@ export interface PhotoPlateOptions {
   labelCaptionGap?: number;
   /** Max wrapped caption lines per cell. Default 4. */
   maxCaptionLines?: number;
+  /** Caption font family stack. Defaults to fontFamily. */
+  captionFontFamily?: string;
 }
 
 export interface PlateResult {
