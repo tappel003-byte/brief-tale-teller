@@ -831,7 +831,8 @@ function PinEditor({
         {sorted.map((pin) => {
           const isOpen = expanded.has(pin.id);
           return (
-            <div key={pin.id} className="border-b last:border-0 flex items-center">
+            <div key={pin.id} className="border-b last:border-0">
+              <div className="flex items-center">
               {(() => {
                 const effective: "red" | "grey" =
                   pin.colorOverride ??
@@ -871,6 +872,8 @@ function PinEditor({
                   {pin.photos.length} photo{pin.photos.length === 1 ? "" : "s"}
                 </span>
               </button>
+              </div>
+
 
 
               {isOpen && (
