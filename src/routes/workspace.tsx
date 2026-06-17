@@ -490,78 +490,107 @@ function ExportCard({
         <details className="mt-4 group" open>
           <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground select-none inline-flex items-center gap-1">
             <span className="group-open:rotate-90 transition-transform inline-block">▸</span>
-            Typography (font, sizes, caption lines)
+            Typography
           </summary>
-          <div className="grid gap-3 md:grid-cols-6 mt-3">
-            <div>
-              <label className="block text-[11px] mb-1 text-muted-foreground">Label font</label>
-              <select
-                value={fontFamily}
-                onChange={(e) => setFontFamily(e.target.value)}
-                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-              >
-                <option value={`Calibri, "Carlito", Arial, sans-serif`}>Calibri</option>
-                <option value={`Arial, sans-serif`}>Arial</option>
-                <option value={`"Helvetica Neue", Helvetica, Arial, sans-serif`}>Helvetica</option>
-                <option value={`Georgia, "Times New Roman", serif`}>Georgia</option>
-              </select>
+
+          {/* Pin schedule group */}
+          <div className="mt-4">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              Pin schedule
             </div>
-            <div>
-              <label className="block text-[11px] mb-1 text-muted-foreground">Caption font</label>
-              <select
-                value={captionFontFamily}
-                onChange={(e) => setCaptionFontFamily(e.target.value)}
-                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-              >
-                <option value={`Calibri, "Carlito", Arial, sans-serif`}>Calibri</option>
-                <option value={`Arial, sans-serif`}>Arial</option>
-                <option value={`"Helvetica Neue", Helvetica, Arial, sans-serif`}>Helvetica</option>
-                <option value={`Georgia, "Times New Roman", serif`}>Georgia</option>
-              </select>
+            <div className="grid gap-3 md:grid-cols-4">
+              <div>
+                <label className="block text-[11px] mb-1 text-muted-foreground">Font</label>
+                <select
+                  value={pinFontFamily}
+                  onChange={(e) => setPinFontFamily(e.target.value)}
+                  className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+                >
+                  <option value={`Calibri, "Carlito", Arial, sans-serif`}>Calibri</option>
+                  <option value={`Arial, sans-serif`}>Arial</option>
+                  <option value={`"Helvetica Neue", Helvetica, Arial, sans-serif`}>Helvetica</option>
+                  <option value={`Georgia, "Times New Roman", serif`}>Georgia</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] mb-1 text-muted-foreground">Description px</label>
+                <input
+                  type="number"
+                  min={10}
+                  max={48}
+                  value={pinDescSize}
+                  onChange={(e) => setPinDescSize(parseInt(e.target.value) || 22)}
+                  className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-[11px] mb-1 text-muted-foreground">Label px</label>
-              <input
-                type="number"
-                min={10}
-                max={48}
-                value={labelSize}
-                onChange={(e) => setLabelSize(parseInt(e.target.value) || 22)}
-                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-              />
+          </div>
+
+          {/* Photo plates group */}
+          <div className="mt-5">
+            <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+              Photo plates
             </div>
-            <div>
-              <label className="block text-[11px] mb-1 text-muted-foreground">Caption px</label>
-              <input
-                type="number"
-                min={8}
-                max={40}
-                value={captionSize}
-                onChange={(e) => setCaptionSize(parseInt(e.target.value) || 20)}
-                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] mb-1 text-muted-foreground">Pin desc px</label>
-              <input
-                type="number"
-                min={10}
-                max={48}
-                value={pinDescSize}
-                onChange={(e) => setPinDescSize(parseInt(e.target.value) || 22)}
-                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-              />
-            </div>
-            <div>
-              <label className="block text-[11px] mb-1 text-muted-foreground">Max caption lines</label>
-              <input
-                type="number"
-                min={1}
-                max={8}
-                value={maxLines}
-                onChange={(e) => setMaxLines(parseInt(e.target.value) || 4)}
-                className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-              />
+            <div className="grid gap-3 md:grid-cols-4">
+              <div>
+                <label className="block text-[11px] mb-1 text-muted-foreground">Label font</label>
+                <select
+                  value={fontFamily}
+                  onChange={(e) => setFontFamily(e.target.value)}
+                  className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+                >
+                  <option value={`Calibri, "Carlito", Arial, sans-serif`}>Calibri</option>
+                  <option value={`Arial, sans-serif`}>Arial</option>
+                  <option value={`"Helvetica Neue", Helvetica, Arial, sans-serif`}>Helvetica</option>
+                  <option value={`Georgia, "Times New Roman", serif`}>Georgia</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] mb-1 text-muted-foreground">Caption font</label>
+                <select
+                  value={captionFontFamily}
+                  onChange={(e) => setCaptionFontFamily(e.target.value)}
+                  className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+                >
+                  <option value={`Calibri, "Carlito", Arial, sans-serif`}>Calibri</option>
+                  <option value={`Arial, sans-serif`}>Arial</option>
+                  <option value={`"Helvetica Neue", Helvetica, Arial, sans-serif`}>Helvetica</option>
+                  <option value={`Georgia, "Times New Roman", serif`}>Georgia</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] mb-1 text-muted-foreground">Label px</label>
+                <input
+                  type="number"
+                  min={10}
+                  max={48}
+                  value={labelSize}
+                  onChange={(e) => setLabelSize(parseInt(e.target.value) || 22)}
+                  className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] mb-1 text-muted-foreground">Caption px</label>
+                <input
+                  type="number"
+                  min={8}
+                  max={40}
+                  value={captionSize}
+                  onChange={(e) => setCaptionSize(parseInt(e.target.value) || 20)}
+                  className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] mb-1 text-muted-foreground">Max caption lines</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={8}
+                  value={maxLines}
+                  onChange={(e) => setMaxLines(parseInt(e.target.value) || 4)}
+                  className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
+                />
+              </div>
             </div>
           </div>
         </details>
