@@ -57,7 +57,12 @@ export function buildGrokPrompt(project: ReportProject): string {
   });
 
   const csv = Papa.unparse(rows, { quotes: true, newline: "\n" });
-  return GROK_INSTRUCTIONS + csv;
+  const cover = project.sections.find((s) => s.kind === "cover") as
+    | { address?: string; title?: string }
+    | undefined;
+  const site = cover?.address || cover?.title || project.name || "";
+  const prefix = site ? `SURVEY SITE: ${site}\n\n` : "";
+  return GROK_INSTRUCTIONS + prefix + csv;
 }
 
 function collectPinOrder(project: ReportProject): string[] {
