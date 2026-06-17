@@ -296,6 +296,9 @@ function ExportCard({
   const [fontFamily, setFontFamily] = useState<string>(
     `Calibri, "Carlito", Arial, sans-serif`,
   );
+  const [captionFontFamily, setCaptionFontFamily] = useState<string>(
+    `Calibri, "Carlito", Arial, sans-serif`,
+  );
   const [labelSize, setLabelSize] = useState<number>(22);
   const [captionSize, setCaptionSize] = useState<number>(20);
   const [maxLines, setMaxLines] = useState<number>(4);
