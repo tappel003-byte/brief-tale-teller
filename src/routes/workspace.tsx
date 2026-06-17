@@ -305,7 +305,7 @@ function ExportCard({
   const [labelSize, setLabelSize] = useState<number>(22);
   const [captionSize, setCaptionSize] = useState<number>(20);
   const [pinDescSize, setPinDescSize] = useState<number>(22);
-  const [pinColorMode, setPinColorMode] = useState<"auto" | "red" | "grey">("auto");
+  
   const [maxLines, setMaxLines] = useState<number>(4);
   const [busy, setBusy] = useState(false);
   const [previewUrls, setPreviewUrls] = useState<{
@@ -343,7 +343,7 @@ function ExportCard({
     }, 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scheduleColumns, perPage, fontFamily, captionFontFamily, pinFontFamily, labelSize, captionSize, pinDescSize, pinColorMode, maxLines]);
+  }, [scheduleColumns, perPage, fontFamily, captionFontFamily, pinFontFamily, labelSize, captionSize, pinDescSize, maxLines, pins]);
 
   async function renderPreview() {
     try {
@@ -356,7 +356,7 @@ function ExportCard({
           scheduleColumns,
           bodySize: pinDescSize,
           fontFamily: pinFontFamily,
-          pinColorMode,
+          
           width: 900,
           quality: 0.6,
         });
@@ -415,7 +415,7 @@ function ExportCard({
       const sortedPins = [...pins].sort(
         (a, b) => (parseInt(a.location) || 9999) - (parseInt(b.location) || 9999),
       );
-      const scheduleBlob = await renderPinScheduleJpeg(sortedPins, { scheduleColumns, bodySize: pinDescSize, fontFamily: pinFontFamily, pinColorMode });
+      const scheduleBlob = await renderPinScheduleJpeg(sortedPins, { scheduleColumns, bodySize: pinDescSize, fontFamily: pinFontFamily });
       zip.file(`${base}-pin-schedule.jpg`, scheduleBlob);
 
       // 3. Photo plates — all pages.
@@ -524,18 +524,6 @@ function ExportCard({
                   onChange={(e) => setPinDescSize(parseInt(e.target.value) || 22)}
                   className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
                 />
-              </div>
-              <div>
-                <label className="block text-[11px] mb-1 text-muted-foreground">Pin color</label>
-                <select
-                  value={pinColorMode}
-                  onChange={(e) => setPinColorMode(e.target.value as "auto" | "red" | "grey")}
-                  className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1"
-                >
-                  <option value="auto">Auto (exterior grey)</option>
-                  <option value="red">All red</option>
-                  <option value="grey">All grey</option>
-                </select>
               </div>
             </div>
           </div>
@@ -832,6 +820,25 @@ function PinEditor({
           const isOpen = expanded.has(pin.id);
           return (
             <div key={pin.id} className="border-b last:border-0">
+              <div className="flex items-center">
+              {(() => {
+                const effective: "red" | "grey" =
+                  pin.colorOverride ??
+                  ((pin.type || "").toLowerCase().includes("exterior") ? "grey" : "red");
+                const next: "red" | "grey" = effective === "red" ? "grey" : "red";
+                return (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      updatePin(pin.id, { colorOverride: next });
+                    }}
+                    title={`Pin color: ${effective}${pin.colorOverride ? " (override)" : " (auto)"} — click to switch`}
+                    className="ml-3 size-5 rounded-full shrink-0 border border-black/20 shadow-sm transition-transform hover:scale-110"
+                    style={{ backgroundColor: effective === "grey" ? "#718096" : "#c53030" }}
+                  />
+                );
+              })()}
               <button
                 onClick={() =>
                   setExpanded((prev) => {
@@ -841,7 +848,7 @@ function PinEditor({
                     return next;
                   })
                 }
-                className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-accent/30 transition-colors"
+                className="flex-1 flex items-center gap-3 px-4 py-3 text-left hover:bg-accent/30 transition-colors"
               >
                 <span className="font-mono text-sm font-semibold w-8 shrink-0">
                   {pin.location}
@@ -853,6 +860,9 @@ function PinEditor({
                   {pin.photos.length} photo{pin.photos.length === 1 ? "" : "s"}
                 </span>
               </button>
+              </div>
+
+
 
               {isOpen && (
                 <div className="px-4 pb-4 bg-canvas/40">

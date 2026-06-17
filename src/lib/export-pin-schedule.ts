@@ -27,11 +27,14 @@ const PIN_CIRCLE_RED = "#c53030";
 const PIN_CIRCLE_GREY = "#718096";
 const PIN_FG = "#ffffff";
 
-function pinColorFor(type: string, mode: PinScheduleOptions["pinColorMode"]): string {
+function pinColorFor(pin: Pin, mode: PinScheduleOptions["pinColorMode"]): string {
+  // Per-pin override always wins.
+  if (pin.colorOverride === "grey") return PIN_CIRCLE_GREY;
+  if (pin.colorOverride === "red") return PIN_CIRCLE_RED;
   if (mode === "grey") return PIN_CIRCLE_GREY;
   if (mode === "red") return PIN_CIRCLE_RED;
   // auto: exterior = grey, everything else = red
-  const t = type.trim().toLowerCase();
+  const t = (pin.type || "").trim().toLowerCase();
   if (t === "exterior" || t.includes("exterior")) return PIN_CIRCLE_GREY;
   return PIN_CIRCLE_RED;
 }
@@ -131,7 +134,7 @@ export async function renderPinScheduleJpeg(
       const pinCy = y + r.height / 2;
       ctx.beginPath();
       ctx.arc(pinCx, pinCy, circleR, 0, Math.PI * 2);
-      ctx.fillStyle = pinColorFor(r.p.type, opts.pinColorMode);
+      ctx.fillStyle = pinColorFor(r.p, opts.pinColorMode);
       ctx.fill();
       ctx.fillStyle = PIN_FG;
       ctx.textBaseline = "middle";
