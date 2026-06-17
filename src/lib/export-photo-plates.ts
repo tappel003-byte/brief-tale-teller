@@ -124,6 +124,7 @@ interface PageOpts {
   photoLabelGap: number;
   labelCaptionGap: number;
   maxCaptionLines: number;
+  captionFontFamily: string;
 }
 
 async function renderPage(
