@@ -108,11 +108,20 @@ export async function renderPinScheduleJpeg(
         ctx.fillRect(panelX, y, panelW, r.height);
       }
 
-      // PIN (black bold, 2-digit).
-      ctx.fillStyle = PIN_COLOR;
+      // PIN (white on red circle, 2-digit).
+      const pinText = pad2(r.p.location);
       ctx.font = pinFont;
-      ctx.textBaseline = "top";
-      ctx.fillText(pad2(r.p.location), panelX + padX, y + rowPadY);
+      const pinTextW = ctx.measureText(pinText).width;
+      const circleR = Math.max(pinTextW / 2 + 14, 22);
+      const pinCx = panelX + padX + circleR;
+      const pinCy = y + r.height / 2;
+      ctx.beginPath();
+      ctx.arc(pinCx, pinCy, circleR, 0, Math.PI * 2);
+      ctx.fillStyle = PIN_CIRCLE;
+      ctx.fill();
+      ctx.fillStyle = PIN_FG;
+      ctx.textBaseline = "middle";
+      ctx.fillText(pinText, pinCx - pinTextW / 2, pinCy);
 
       // Description (wrapped, vertically padded).
       ctx.fillStyle = BODY;
