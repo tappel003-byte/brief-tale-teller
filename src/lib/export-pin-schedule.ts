@@ -42,7 +42,7 @@ export async function renderPinScheduleJpeg(
   const descW = panelW - descOffset - padX;
 
   const bodySize = 22;
-  const pinSize = 28;
+  const pinSize = 18;
   const headerSize = 20;
   const lineH = Math.round(bodySize * 1.4);
   const rowPadY = 16;
@@ -112,7 +112,7 @@ export async function renderPinScheduleJpeg(
       const pinText = pad2(r.p.location);
       ctx.font = pinFont;
       const pinTextW = ctx.measureText(pinText).width;
-      const circleR = Math.max(pinTextW / 2 + 14, 22);
+      const circleR = Math.max(pinTextW / 2 + 6, 14);
       const pinCx = panelX + padX + circleR;
       const pinCy = y + r.height / 2;
       ctx.beginPath();
