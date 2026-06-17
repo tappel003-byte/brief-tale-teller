@@ -122,7 +122,7 @@ export async function renderPinScheduleJpeg(
         ctx.fillRect(panelX, y, panelW, r.height);
       }
 
-      // PIN (white on red circle, 2-digit).
+      // PIN (white circle, 2-digit, color depends on type & mode).
       const pinText = pad2(r.p.location);
       ctx.font = pinFont;
       const pinTextW = ctx.measureText(pinText).width;
@@ -131,7 +131,7 @@ export async function renderPinScheduleJpeg(
       const pinCy = y + r.height / 2;
       ctx.beginPath();
       ctx.arc(pinCx, pinCy, circleR, 0, Math.PI * 2);
-      ctx.fillStyle = PIN_CIRCLE;
+      ctx.fillStyle = pinColorFor(r.p.type, opts.pinColorMode);
       ctx.fill();
       ctx.fillStyle = PIN_FG;
       ctx.textBaseline = "middle";
