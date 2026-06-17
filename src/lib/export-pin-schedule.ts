@@ -123,10 +123,12 @@ export async function renderPinScheduleJpeg(
       ctx.textBaseline = "middle";
       ctx.fillText(pinText, pinCx - pinTextW / 2, pinCy);
 
-      // Description (wrapped, vertically padded).
+      // Description (wrapped, vertically centered like the pin circle).
       ctx.fillStyle = BODY;
       ctx.font = bodyFont;
-      let ly = y + rowPadY;
+      ctx.textBaseline = "top";
+      const textBlockH = r.lines.length * lineH;
+      let ly = y + (r.height - textBlockH) / 2;
       for (const ln of r.lines) {
         ctx.fillText(ln, descX, ly);
         ly += lineH;
