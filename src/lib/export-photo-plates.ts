@@ -90,6 +90,7 @@ export async function renderPhotoPlates(
     photoLabelGap: opts.photoLabelGap ?? 10,
     labelCaptionGap: opts.labelCaptionGap ?? 6,
     maxCaptionLines: opts.maxCaptionLines ?? 4,
+    captionFontFamily: opts.captionFontFamily ?? opts.fontFamily ?? `Calibri, "Carlito", Arial, sans-serif`,
   };
 
   const results: PlateResult[] = [];
