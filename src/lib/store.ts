@@ -282,13 +282,45 @@ export const useReportStore = create<State & Actions>((set, get) => ({
     }
   },
 
-  applyGrok: (rows) =>
+  applyGrok: (rows, interviewNotes) =>
     set((s) => {
       if (!s.project) return s;
-      const next = applyGrokRows(s.project, rows);
+      let next = applyGrokRows(s.project, rows);
+      if (interviewNotes && interviewNotes.trim()) {
+        next = { ...next, interviewNotes: interviewNotes.trim() };
+        // Upsert an "Interview Notes" freetext section just before the appendix.
+        const existing = next.sections.find(
+          (sec) => sec.kind === "freetext" && sec.title === "Interview Notes",
+        );
+        if (existing && existing.kind === "freetext") {
+          next = {
+            ...next,
+            sections: next.sections.map((sec) =>
+              sec.id === existing.id
+                ? { ...existing, body: interviewNotes.trim() }
+                : sec,
+            ),
+          };
+        } else {
+          const newSection: ReportSection = {
+            id: `sec-interview-${Date.now().toString(36)}`,
+            kind: "freetext",
+            title: "Interview Notes",
+            body: interviewNotes.trim(),
+          };
+          const sections = [...next.sections];
+          const appendixIdx = sections.findIndex(
+            (sec) => sec.kind === "freetext" && sec.title === "Appendix",
+          );
+          if (appendixIdx >= 0) sections.splice(appendixIdx, 0, newSection);
+          else sections.push(newSection);
+          next = { ...next, sections };
+        }
+      }
       persistDraft(next);
       return { project: next };
     }),
+
 
   setCaptureLabel: (filename, label) =>
     set((s) => {
