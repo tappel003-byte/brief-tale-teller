@@ -466,7 +466,8 @@ function ExportCard({
     }
   }
 
-  const planUrl = mapFilename ? useReportStore.getState().objectUrls[mapFilename] : undefined;
+  const objectUrls = useReportStore((s) => s.objectUrls);
+  const planUrl = mapFilename ? objectUrls[mapFilename] : undefined;
   const hasAnyCoords = pins.some((p) => typeof p.x === "number" && typeof p.y === "number");
 
   return (
