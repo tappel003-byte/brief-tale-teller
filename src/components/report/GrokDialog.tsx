@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, CheckCircle2, Sparkles, AlertCircle } from "lucide-react";
+import { Copy, CheckCircle2, Sparkles, AlertCircle, Mic, Download } from "lucide-react";
 import { useReportStore } from "@/lib/store";
 import { buildGrokPrompt } from "@/lib/grok-prompt";
 import { parseGrokCsv, type ParseResult } from "@/lib/grok-csv";
@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 export function GrokDialog({ onClose }: { onClose: () => void }) {
   const project = useReportStore((s) => s.project)!;
+  const objectUrls = useReportStore((s) => s.objectUrls);
   const applyGrok = useReportStore((s) => s.applyGrok);
 
   const [copied, setCopied] = useState(false);
@@ -15,6 +16,7 @@ export function GrokDialog({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
 
   const promptText = buildGrokPrompt(project);
+  const audioClips = project.audioClips ?? [];
 
   async function onCopyPrompt() {
     try {
@@ -45,10 +47,12 @@ export function GrokDialog({ onClose }: { onClose: () => void }) {
 
   function onApply() {
     if (!preview) return;
-    applyGrok(preview.rows);
-    toast.success(`Applied ${preview.rows.length} cleaned rows`);
+    applyGrok(preview.rows, preview.interviewNotes);
+    const notesMsg = preview.interviewNotes ? " + Interview Notes" : "";
+    toast.success(`Applied ${preview.rows.length} cleaned rows${notesMsg}`);
     onClose();
   }
+
 
   return (
     <div
@@ -102,12 +106,46 @@ export function GrokDialog({ onClose }: { onClose: () => void }) {
                 )}
               </button>
             </div>
+            {audioClips.length > 0 && (
+              <div className="border-b px-5 py-3 shrink-0 bg-canvas/40">
+                <div className="flex items-center gap-1.5 text-xs font-medium mb-1.5">
+                  <Mic className="size-3.5 text-primary" />
+                  {audioClips.length} voice clip{audioClips.length === 1 ? "" : "s"} — attach to Grok with the prompt
+                </div>
+                <div className="text-[11px] text-muted-foreground mb-2">
+                  Download each clip and drag it into the Grok chat alongside the pasted prompt. Grok will transcribe and return them as an "Interview Notes" block.
+                </div>
+                <ul className="space-y-1 max-h-32 overflow-auto thin-scroll">
+                  {audioClips.map((clip) => {
+                    const url = objectUrls[clip.filename];
+                    return (
+                      <li key={clip.filename} className="flex items-center justify-between gap-2 text-xs">
+                        <span className="font-mono truncate">{clip.filename}</span>
+                        {url ? (
+                          <a
+                            href={url}
+                            download={clip.filename}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border hover:bg-accent shrink-0"
+                          >
+                            <Download className="size-3" />
+                            Download
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">unavailable</span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
             <textarea
               readOnly
               value={promptText}
               className="flex-1 w-full font-mono text-[11px] leading-snug p-4 bg-canvas/60 resize-none focus:outline-none"
             />
           </section>
+
 
           {/* RIGHT: paste */}
           <section className="flex flex-col min-h-0">
@@ -185,8 +223,20 @@ export function GrokDialog({ onClose }: { onClose: () => void }) {
                       </tbody>
                     </table>
                   </div>
+                  {preview.interviewNotes && (
+                    <div className="mt-3 border rounded-sm p-3 bg-canvas/40">
+                      <div className="flex items-center gap-1.5 text-xs font-medium mb-1.5">
+                        <Mic className="size-3.5 text-primary" />
+                        Interview Notes detected — will be added as a report section
+                      </div>
+                      <p className="text-xs whitespace-pre-wrap leading-relaxed text-muted-foreground line-clamp-[12]">
+                        {preview.interviewNotes}
+                      </p>
+                    </div>
+                  )}
                 </>
               )}
+
 
               {!preview && !error && (
                 <p className="text-xs text-muted-foreground italic">

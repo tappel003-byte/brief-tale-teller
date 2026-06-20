@@ -20,6 +20,29 @@ export interface ParseResult {
   missingPins: string[];
   /** CSV pins that don't match any pin in the project. */
   unknownPins: string[];
+  /** Interview Notes block split off from the CSV, when present. */
+  interviewNotes?: string;
+}
+
+const INTERVIEW_DIVIDER_RE = /^=+\s*INTERVIEW\s+NOTES\s*=+\s*$/im;
+
+/**
+ * Split Grok's combined reply ("PART 1 CSV\n===INTERVIEW NOTES===\nPART 2")
+ * into the CSV portion and the interview-notes portion. Either may be empty.
+ */
+export function splitGrokReply(text: string): {
+  csv: string;
+  interviewNotes?: string;
+} {
+  const m = text.match(INTERVIEW_DIVIDER_RE);
+  if (!m || m.index === undefined) return { csv: text };
+  const csv = text.slice(0, m.index).trim();
+  const rest = text.slice(m.index + m[0].length).trim();
+  const notes =
+    !rest || /^\(no audio interview provided\)\s*$/i.test(rest)
+      ? undefined
+      : rest;
+  return { csv, interviewNotes: notes };
 }
 
 const COL_ALIASES: Record<keyof GrokRow, string[]> = {
@@ -34,7 +57,8 @@ export function parseGrokCsv(
   project: ReportProject,
 ): ParseResult {
   const warnings: string[] = [];
-  const parsed = Papa.parse<Record<string, string>>(text.trim(), {
+  const { csv, interviewNotes } = splitGrokReply(text);
+  const parsed = Papa.parse<Record<string, string>>(csv.trim(), {
     header: true,
     skipEmptyLines: true,
     transformHeader: (h) => h.trim(),
@@ -42,6 +66,7 @@ export function parseGrokCsv(
   if (parsed.errors.length) {
     for (const e of parsed.errors) warnings.push(`Row ${e.row}: ${e.message}`);
   }
+
 
   const headerMap = mapHeaders(parsed.meta.fields ?? []);
   if (!headerMap.pin || !headerMap.description) {
@@ -67,7 +92,7 @@ export function parseGrokCsv(
   const missingPins = [...projectPins].filter((p) => !csvPins.has(p));
   const unknownPins = [...csvPins].filter((p) => !projectPins.has(p));
 
-  return { rows, warnings, missingPins, unknownPins };
+  return { rows, warnings, missingPins, unknownPins, interviewNotes };
 }
 
 export function applyGrokRows(

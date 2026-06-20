@@ -90,6 +90,15 @@ export interface CaptureRef {
   label?: string;
 }
 
+export interface AudioClipRef {
+  /** Filename inside assets (basename). */
+  filename: string;
+  /** Optional duration in seconds, when known. */
+  durationSec?: number;
+  /** Optional captured-at timestamp, when known. */
+  recordedAt?: string;
+}
+
 export interface ReportProject {
   /** Schema version; bump when shape changes. */
   v: 1;
@@ -100,10 +109,14 @@ export interface ReportProject {
   updatedAt: string;
   pins: Record<string, Pin>;
   sections: ReportSection[];
-  /** filename -> asset bytes (photos + plan + captures). */
+  /** filename -> asset bytes (photos + plan + captures + audio clips). */
   assets: Record<string, PhotoAsset>;
   /** Loose "photo capture" images from the field — not tied to any pin until assigned. */
   captures?: CaptureRef[];
+  /** Voice-memo / homeowner-interview audio clips from the field app. */
+  audioClips?: AudioClipRef[];
+  /** Interview notes block returned by Grok after transcribing the audio clips. */
+  interviewNotes?: string;
   /** True once a Grok-cleaned CSV has been imported. */
   grokImported?: boolean;
 }

@@ -11,8 +11,12 @@ Below is a CSV exported from a field-survey app. Each row is one numbered "pin" 
 
 Columns: Pin, Room/Area, Raw Description, Photos
 
+The engineer may also attach one or more AUDIO files to this chat (homeowner interview, stream-of-consciousness site dictation, etc.). If audio is attached, transcribe it as part of this task.
+
 TASK
-Return a single CSV with exactly these four columns, in this order:
+Return TWO things, in this exact order, with the divider line shown below between them.
+
+PART 1 — Cleaned pin CSV. A single CSV with exactly these four columns, in this order:
 
   Pin, Room/Area, Description, Photos
 
@@ -29,13 +33,26 @@ Rules for Room/Area:
 Rules for Pin and Photos:
 - Pass through unchanged.
 
-OUTPUT
-- One CSV. Header row, then one row per pin.
+CSV output rules:
+- Header row, then one row per pin.
 - Quote any field containing a comma.
 - No commentary before or after the CSV.
 
+DIVIDER
+After the CSV, output exactly this line on its own, with nothing else on it:
+
+===INTERVIEW NOTES===
+
+PART 2 — Interview Notes. If audio was attached, transcribe and organize it into one clean prose block suitable for an engineering report background section. Rules:
+- Group related thoughts into short paragraphs by topic (homeowner concerns, history, observations, etc.).
+- Fix dictation/transcription errors and filler words ("um", "uh", "you know"). Keep the engineer's / homeowner's voice and meaning; do not invent facts, causes, or severity judgments.
+- Attribute clearly when obvious ("The homeowner stated...", "The engineer noted..."). Otherwise write in neutral third person.
+- Plain prose. No bullets, no markdown, no headings.
+- If no audio was attached, output exactly: (no audio interview provided)
+
 RAW DATA
 `;
+
 
 export function buildGrokPrompt(project: ReportProject): string {
   // Iterate pins in section order (the "findings" section holds the canonical
@@ -62,7 +79,13 @@ export function buildGrokPrompt(project: ReportProject): string {
     | undefined;
   const site = cover?.address || cover?.title || project.name || "";
   const prefix = site ? `SURVEY SITE: ${site}\n\n` : "";
-  return GROK_INSTRUCTIONS + prefix + csv;
+  const clips = project.audioClips ?? [];
+  const audioNote = clips.length
+    ? `\n\nAUDIO ATTACHED: ${clips.length} clip(s) — ${clips
+        .map((c) => c.filename)
+        .join(", ")}. Transcribe these into PART 2 (Interview Notes).\n`
+    : `\n\nAUDIO ATTACHED: none. Output "(no audio interview provided)" for PART 2.\n`;
+  return GROK_INSTRUCTIONS + prefix + csv + audioNote;
 }
 
 function collectPinOrder(project: ReportProject): string[] {
