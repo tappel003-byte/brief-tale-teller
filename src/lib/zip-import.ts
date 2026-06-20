@@ -68,6 +68,7 @@ export async function importZipFile(file: File): Promise<ImportResult> {
   const assets: Record<string, PhotoAsset> = {};
   const objectUrls: Record<string, string> = {};
   const captures: CaptureRef[] = [];
+  const audioClips: AudioClipRef[] = [];
   let planFilename: string | undefined;
   let planFallback: string | undefined;
 
@@ -77,6 +78,7 @@ export async function importZipFile(file: File): Promise<ImportResult> {
     const planMatch = base.match(PLAN_RE);
     const photoMatch = base.match(PHOTO_RE);
     const extMatch = base.match(IMG_EXT_RE);
+    const audioMatch = base.match(AUDIO_EXT_RE);
     const isCapture =
       !!extMatch && CAPTURE_FOLDER_RE.test(entry.name) && !planMatch;
     // Treat any image whose name hints at a plan/map/site/key drawing as a candidate.
@@ -85,19 +87,28 @@ export async function importZipFile(file: File): Promise<ImportResult> {
       !isCapture &&
       !!extMatch &&
       /plan|map|site|key|drawing/i.test(base);
-    if (!planMatch && !photoMatch && !isPlanish && !isCapture) continue;
+    // .mp4 is ambiguous (audio-only m4a is "audio/mp4", but video uses .mp4 too).
+    // Treat .mp4 as audio only when filename hints at audio/voice/interview.
+    const isAudio =
+      !!audioMatch &&
+      (audioMatch[1].toLowerCase() !== "mp4" ||
+        /(audio|voice|interview|memo|dictat|note|record)/i.test(entry.name));
+    if (!planMatch && !photoMatch && !isPlanish && !isCapture && !isAudio)
+      continue;
 
     const ext = (
       planMatch?.[1] ??
       photoMatch?.[2] ??
       extMatch?.[1] ??
+      audioMatch?.[1] ??
       ""
     ).toLowerCase();
     const mime = MIME_BY_EXT[ext] ?? "application/octet-stream";
 
-    // Choose a unique key. Captures get a "capture-" prefix to avoid colliding
-    // with photo-NN.jpg from the pins, and to make them easy to identify.
-    let key = isCapture && !/^capture-/i.test(base) ? `capture-${base}` : base;
+    // Choose a unique key. Captures get a "capture-" prefix, audio gets "audio-".
+    let key = base;
+    if (isCapture && !/^capture-/i.test(base)) key = `capture-${base}`;
+    else if (isAudio && !/^audio-/i.test(base)) key = `audio-${base}`;
     if (assets[key]) {
       let i = 2;
       const dot = key.lastIndexOf(".");
@@ -113,11 +124,13 @@ export async function importZipFile(file: File): Promise<ImportResult> {
     assets[key] = { filename: key, base64: b64, mime };
     objectUrls[key] = URL.createObjectURL(new Blob([ab], { type: mime }));
 
-    if (isCapture) captures.push({ filename: key });
+    if (isAudio) audioClips.push({ filename: key });
+    else if (isCapture) captures.push({ filename: key });
     else if (planMatch && !planFilename) planFilename = key;
     else if (isPlanish && !planFallback) planFallback = key;
   }
   if (!planFilename) planFilename = planFallback;
+
 
   // Parse pins.
   const parsed = Papa.parse<RawPinRow>(pinsCsv, {
