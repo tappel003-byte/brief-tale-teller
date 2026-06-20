@@ -40,7 +40,7 @@ interface Actions {
   removePhotoFromPin: (pinId: string, photoIdx: number) => void;
   setObjectUrls: (urls: Record<string, string>) => void;
   hydrateFromDraft: () => boolean;
-  applyGrok: (rows: GrokRow[]) => void;
+  applyGrok: (rows: GrokRow[], interviewNotes?: string) => void;
   loadJobById: (id: string) => Promise<boolean>;
   setCaptureLabel: (filename: string, label: string) => void;
   removeCapture: (filename: string) => void;
