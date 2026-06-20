@@ -9,6 +9,7 @@ import type {
   CoverSection,
   FindingsSection,
   FreeTextSection,
+  CaptureRef,
 } from "./types";
 import { saveJob } from "./jobs-db";
 import { applyGrokRows, type GrokRow } from "./grok-csv";
