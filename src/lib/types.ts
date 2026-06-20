@@ -81,6 +81,13 @@ export interface PhotoAsset {
   mime: string;
 }
 
+export interface CaptureRef {
+  /** Filename inside assets (basename). */
+  filename: string;
+  /** Optional user-edited label/caption for this capture. */
+  label?: string;
+}
+
 export interface ReportProject {
   /** Schema version; bump when shape changes. */
   v: 1;
@@ -91,8 +98,10 @@ export interface ReportProject {
   updatedAt: string;
   pins: Record<string, Pin>;
   sections: ReportSection[];
-  /** filename -> asset bytes (photos + plan). */
+  /** filename -> asset bytes (photos + plan + captures). */
   assets: Record<string, PhotoAsset>;
+  /** Loose "photo capture" images from the field — not tied to any pin until assigned. */
+  captures?: CaptureRef[];
   /** True once a Grok-cleaned CSV has been imported. */
   grokImported?: boolean;
 }
