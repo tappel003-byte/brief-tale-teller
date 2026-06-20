@@ -92,7 +92,7 @@ export function parseGrokCsv(
   const missingPins = [...projectPins].filter((p) => !csvPins.has(p));
   const unknownPins = [...csvPins].filter((p) => !projectPins.has(p));
 
-  return { rows, warnings, missingPins, unknownPins };
+  return { rows, warnings, missingPins, unknownPins, interviewNotes };
 }
 
 export function applyGrokRows(
