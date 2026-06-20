@@ -6,6 +6,7 @@ import type {
   Pin,
   PhotoAsset,
   PhotoRef,
+  CaptureRef,
   ReportProject,
   ReportSection,
 } from "./types";
