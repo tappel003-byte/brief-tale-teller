@@ -42,6 +42,9 @@ interface Actions {
   hydrateFromDraft: () => boolean;
   applyGrok: (rows: GrokRow[]) => void;
   loadJobById: (id: string) => Promise<boolean>;
+  setCaptureLabel: (filename: string, label: string) => void;
+  removeCapture: (filename: string) => void;
+  attachCaptureToPin: (filename: string, pinId: string) => void;
 }
 
 export const useReportStore = create<State & Actions>((set, get) => ({
