@@ -240,8 +240,23 @@ function JobPage() {
           <PinEditor pins={pins} objectUrls={objectUrls} />
         </Stage>
 
+        {project.captures && project.captures.length > 0 && (
+          <Stage
+            n={3}
+            id="stage-captures"
+            title="Photo capture"
+            subtitle="Loose field photos from the import. Preview, label, or attach any to a pin."
+          >
+            <CapturePanel
+              captures={project.captures}
+              pins={pins}
+              objectUrls={objectUrls}
+            />
+          </Stage>
+        )}
+
         <Stage
-          n={3}
+          n={project.captures && project.captures.length > 0 ? 4 : 3}
           id="stage-arrange"
           title="Arrange & Export"
           subtitle="Pick the map, dial in layout, then drop the ZIP into your 11×17 template."
