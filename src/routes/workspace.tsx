@@ -797,6 +797,8 @@ function PinEditor({
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [picker, setPicker] = useState<{ pinId: string; idx: number | "add" } | null>(null);
+  const [groupByRoom, setGroupByRoom] = useState(false);
+  const [collapsedRooms, setCollapsedRooms] = useState<Set<string>>(new Set());
   const setCleanedDescription = useReportStore((s) => s.setCleanedDescription);
   const revertCleaned = useReportStore((s) => s.revertCleaned);
   const reorderPhoto = useReportStore((s) => s.reorderPhoto);
@@ -818,6 +820,33 @@ function PinEditor({
     (a, b) => (parseInt(a.location) || 9999) - (parseInt(b.location) || 9999),
   );
 
+  // Unique non-empty room names across all pins — used as datalist suggestions
+  // and to drive the optional "Group by room" view.
+  const roomOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of pins) {
+      const r = (p.roomArea ?? "").trim();
+      if (r) set.add(r);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [pins]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, typeof sorted>();
+    for (const p of sorted) {
+      const key = (p.roomArea ?? "").trim() || "Unassigned";
+      const arr = map.get(key) ?? [];
+      arr.push(p);
+      map.set(key, arr);
+    }
+    const keys = Array.from(map.keys()).sort((a, b) => {
+      if (a === "Unassigned") return -1;
+      if (b === "Unassigned") return 1;
+      return a.localeCompare(b);
+    });
+    return keys.map((k) => ({ room: k, pins: map.get(k)! }));
+  }, [sorted]);
+
   function applyPick(filename: string, n: number) {
     if (!picker) return;
     const pin = project.pins[picker.pinId];
@@ -832,10 +861,7 @@ function PinEditor({
     setPicker(null);
   }
 
-  return (
-    <div className="rounded-md border bg-panel overflow-hidden">
-      <div className="max-h-[60vh] overflow-auto thin-scroll">
-        {sorted.map((pin) => {
+  const renderRow = (pin: (typeof sorted)[number]) => {
           const isOpen = expanded.has(pin.id);
           const effectiveColor: "red" | "grey" =
             pin.colorOverride ??
@@ -872,6 +898,11 @@ function PinEditor({
                   <span className="text-sm flex-1 truncate text-left">
                     {pin.cleanedDescription || pin.rawDescription || "No description"}
                   </span>
+                  {pin.roomArea && (
+                    <span className="hidden sm:inline text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium shrink-0 max-w-[140px] truncate">
+                      {pin.roomArea}
+                    </span>
+                  )}
                   {pin.type && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono uppercase shrink-0">
                       {pin.type}
@@ -886,7 +917,30 @@ function PinEditor({
 
 
               {isOpen && (
-                <div className="px-4 pb-4 bg-canvas/40">
+                <div className="px-4 pb-4 bg-canvas/40 space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">
+                      Room / area
+                    </label>
+                    <input
+                      type="text"
+                      list={`rooms-${pin.id}`}
+                      value={pin.roomArea ?? ""}
+                      onChange={(e) =>
+                        updatePin(pin.id, { roomArea: e.target.value })
+                      }
+                      placeholder="e.g. Kitchen, Exterior, Basement…"
+                      className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                    <datalist id={`rooms-${pin.id}`}>
+                      {roomOptions.map((r) => (
+                        <option key={r} value={r} />
+                      ))}
+                    </datalist>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Used in the Grok export and to group findings in the report.
+                    </p>
+                  </div>
                   <div className="grid gap-3 md:grid-cols-2">
                     <div>
                       <label className="block text-xs font-medium text-muted-foreground mb-1">
@@ -994,7 +1048,58 @@ function PinEditor({
               )}
             </div>
           );
-        })}
+  };
+
+  function toggleRoom(room: string) {
+    setCollapsedRooms((prev) => {
+      const next = new Set(prev);
+      if (next.has(room)) next.delete(room);
+      else next.add(room);
+      return next;
+    });
+  }
+
+  return (
+    <div className="rounded-md border bg-panel overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-2 border-b bg-canvas/30 text-xs">
+        <span className="text-muted-foreground">
+          {sorted.length} pin{sorted.length === 1 ? "" : "s"}
+          {groupByRoom ? ` · ${grouped.length} group${grouped.length === 1 ? "" : "s"}` : ""}
+        </span>
+        <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={groupByRoom}
+            onChange={(e) => setGroupByRoom(e.target.checked)}
+            className="size-3.5 accent-primary"
+          />
+          <span className="font-medium">Group by room</span>
+        </label>
+      </div>
+      <div className="max-h-[60vh] overflow-auto thin-scroll">
+        {groupByRoom
+          ? grouped.map((g) => {
+              const collapsed = collapsedRooms.has(g.room);
+              return (
+                <div key={g.room} className="border-b last:border-0">
+                  <button
+                    type="button"
+                    onClick={() => toggleRoom(g.room)}
+                    className="w-full flex items-center gap-2 px-3 py-2 bg-accent/40 hover:bg-accent/60 text-left text-xs font-semibold uppercase tracking-wide"
+                  >
+                    <span className="font-mono text-muted-foreground">
+                      {collapsed ? "▸" : "▾"}
+                    </span>
+                    <span className="flex-1 truncate">{g.room}</span>
+                    <span className="text-muted-foreground font-mono">
+                      {g.pins.length}
+                    </span>
+                  </button>
+                  {!collapsed && g.pins.map(renderRow)}
+                </div>
+              );
+            })
+          : sorted.map(renderRow)}
       </div>
 
       {picker && (
