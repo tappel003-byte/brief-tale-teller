@@ -240,8 +240,23 @@ function JobPage() {
           <PinEditor pins={pins} objectUrls={objectUrls} />
         </Stage>
 
+        {project.captures && project.captures.length > 0 && (
+          <Stage
+            n={3}
+            id="stage-captures"
+            title="Photo capture"
+            subtitle="Loose field photos from the import. Preview, label, or attach any to a pin."
+          >
+            <CapturePanel
+              captures={project.captures}
+              pins={pins}
+              objectUrls={objectUrls}
+            />
+          </Stage>
+        )}
+
         <Stage
-          n={3}
+          n={project.captures && project.captures.length > 0 ? 4 : 3}
           id="stage-arrange"
           title="Arrange & Export"
           subtitle="Pick the map, dial in layout, then drop the ZIP into your 11×17 template."
@@ -1076,3 +1091,159 @@ function PhotoPicker({
   );
 }
 
+
+function CapturePanel({
+  captures,
+  pins,
+  objectUrls,
+}: {
+  captures: import("@/lib/types").CaptureRef[];
+  pins: import("@/lib/types").Pin[];
+  objectUrls: Record<string, string>;
+}) {
+  const setCaptureLabel = useReportStore((s) => s.setCaptureLabel);
+  const removeCapture = useReportStore((s) => s.removeCapture);
+  const attachCaptureToPin = useReportStore((s) => s.attachCaptureToPin);
+  const project = useReportStore((s) => s.project)!;
+  const [lightbox, setLightbox] = useState<string | null>(null);
+
+  // filename -> pin.location string if attached
+  const attachedTo = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const pin of pins) {
+      for (const ph of pin.photos) {
+        const arr = map.get(ph.filename) ?? [];
+        arr.push(pin.location);
+        map.set(ph.filename, arr);
+      }
+    }
+    return map;
+  }, [pins]);
+
+  const sortedPins = useMemo(
+    () =>
+      [...pins].sort(
+        (a, b) => (parseInt(a.location) || 9999) - (parseInt(b.location) || 9999),
+      ),
+    [pins],
+  );
+
+  if (captures.length === 0) {
+    return (
+      <div className="rounded-md border bg-panel p-6 text-sm text-muted-foreground italic">
+        No photo capture images found in this import.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-md border bg-panel p-3">
+      <div className="text-xs text-muted-foreground font-mono mb-3">
+        {captures.length} capture{captures.length === 1 ? "" : "s"} · stay local
+        unless attached to a pin
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+        {captures.map((cap) => {
+          const src = objectUrls[cap.filename];
+          const attached = attachedTo.get(cap.filename) ?? [];
+          return (
+            <div
+              key={cap.filename}
+              className="rounded-sm border bg-background overflow-hidden flex flex-col"
+            >
+              <button
+                type="button"
+                onClick={() => src && setLightbox(src)}
+                className="relative aspect-[4/3] bg-white"
+                title="Click to enlarge"
+              >
+                {src ? (
+                  <img
+                    src={src}
+                    alt={cap.label || cap.filename}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-[10px] text-muted-foreground">
+                    {cap.filename}
+                  </div>
+                )}
+                {attached.length > 0 && (
+                  <span className="absolute top-1 left-1 text-[10px] font-mono bg-emerald-600/90 text-white px-1.5 py-0.5 rounded-sm">
+                    Pin {attached.join(", ")}
+                  </span>
+                )}
+              </button>
+              <div className="p-2 space-y-1.5">
+                <input
+                  value={cap.label ?? ""}
+                  onChange={(e) =>
+                    setCaptureLabel(cap.filename, e.target.value)
+                  }
+                  placeholder="Optional caption…"
+                  className="w-full text-xs rounded-sm border border-input bg-background px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+                <div className="flex items-center gap-1">
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const pid = e.target.value;
+                      if (pid) attachCaptureToPin(cap.filename, pid);
+                      e.target.value = "";
+                    }}
+                    className="flex-1 text-xs rounded-sm border border-input bg-background px-1 py-1"
+                    title="Attach this capture to a pin"
+                  >
+                    <option value="">Attach to pin…</option>
+                    {sortedPins.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        Pin {p.location}
+                        {p.cleanedDescription
+                          ? ` — ${p.cleanedDescription.slice(0, 40)}`
+                          : ""}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (
+                        confirm(
+                          `Remove "${cap.filename}" from the project? This also removes it from any pin it's attached to.`,
+                        )
+                      ) {
+                        removeCapture(cap.filename);
+                      }
+                    }}
+                    className="text-muted-foreground hover:text-destructive p-1"
+                    title="Remove capture"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+                <div className="text-[10px] font-mono text-muted-foreground truncate">
+                  {cap.filename}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {/* avoid unused-var warning */}
+      <span className="hidden">{Object.keys(project.assets).length}</span>
+
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+        >
+          <img
+            src={lightbox}
+            alt="Preview"
+            className="max-w-full max-h-full object-contain"
+          />
+        </div>
+      )}
+    </div>
+  );
+}

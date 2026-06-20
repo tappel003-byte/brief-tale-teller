@@ -6,6 +6,7 @@ import type {
   Pin,
   PhotoAsset,
   PhotoRef,
+  CaptureRef,
   ReportProject,
   ReportSection,
 } from "./types";
@@ -26,6 +27,7 @@ interface ImportResult {
 const PHOTO_RE = /^photo-(\d+)\.(jpe?g|png|webp)$/i;
 const PLAN_RE = /^plan\.(png|jpe?g|pdf)$/i;
 const IMG_EXT_RE = /\.(png|jpe?g|webp|pdf)$/i;
+const CAPTURE_FOLDER_RE = /(^|\/)photo[\s_-]?captur[^/]*(\/|$)/i;
 
 const MIME_BY_EXT: Record<string, string> = {
   jpg: "image/jpeg",
@@ -49,9 +51,10 @@ export async function importZipFile(file: File): Promise<ImportResult> {
   }
   const pinsCsv = await pinsEntry.async("string");
 
-  // Collect photos and plan.
+  // Collect photos, plan, and "photo capture" loose images.
   const assets: Record<string, PhotoAsset> = {};
   const objectUrls: Record<string, string> = {};
+  const captures: CaptureRef[] = [];
   let planFilename: string | undefined;
   let planFallback: string | undefined;
 
@@ -61,10 +64,15 @@ export async function importZipFile(file: File): Promise<ImportResult> {
     const planMatch = base.match(PLAN_RE);
     const photoMatch = base.match(PHOTO_RE);
     const extMatch = base.match(IMG_EXT_RE);
+    const isCapture =
+      !!extMatch && CAPTURE_FOLDER_RE.test(entry.name) && !planMatch;
     // Treat any image whose name hints at a plan/map/site/key drawing as a candidate.
     const isPlanish =
-      !photoMatch && !!extMatch && /plan|map|site|key|drawing/i.test(base);
-    if (!planMatch && !photoMatch && !isPlanish) continue;
+      !photoMatch &&
+      !isCapture &&
+      !!extMatch &&
+      /plan|map|site|key|drawing/i.test(base);
+    if (!planMatch && !photoMatch && !isPlanish && !isCapture) continue;
 
     const ext = (
       planMatch?.[1] ??
@@ -74,14 +82,27 @@ export async function importZipFile(file: File): Promise<ImportResult> {
     ).toLowerCase();
     const mime = MIME_BY_EXT[ext] ?? "application/octet-stream";
 
+    // Choose a unique key. Captures get a "capture-" prefix to avoid colliding
+    // with photo-NN.jpg from the pins, and to make them easy to identify.
+    let key = isCapture && !/^capture-/i.test(base) ? `capture-${base}` : base;
+    if (assets[key]) {
+      let i = 2;
+      const dot = key.lastIndexOf(".");
+      const stem = dot > 0 ? key.slice(0, dot) : key;
+      const tail = dot > 0 ? key.slice(dot) : "";
+      while (assets[`${stem}-${i}${tail}`]) i++;
+      key = `${stem}-${i}${tail}`;
+    }
+
     const blob = await entry.async("blob");
     const ab = await blob.arrayBuffer();
     const b64 = arrayBufferToBase64(ab);
-    assets[base] = { filename: base, base64: b64, mime };
-    objectUrls[base] = URL.createObjectURL(new Blob([ab], { type: mime }));
+    assets[key] = { filename: key, base64: b64, mime };
+    objectUrls[key] = URL.createObjectURL(new Blob([ab], { type: mime }));
 
-    if (planMatch && !planFilename) planFilename = base;
-    else if (isPlanish && !planFallback) planFallback = base;
+    if (isCapture) captures.push({ filename: key });
+    else if (planMatch && !planFilename) planFilename = key;
+    else if (isPlanish && !planFallback) planFallback = key;
   }
   if (!planFilename) planFilename = planFallback;
 
@@ -165,6 +186,7 @@ export async function importZipFile(file: File): Promise<ImportResult> {
     pins,
     sections,
     assets,
+    captures,
   };
 
   return { project, objectUrls };

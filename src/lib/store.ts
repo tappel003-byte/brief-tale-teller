@@ -9,6 +9,7 @@ import type {
   CoverSection,
   FindingsSection,
   FreeTextSection,
+  CaptureRef,
 } from "./types";
 import { saveJob } from "./jobs-db";
 import { applyGrokRows, type GrokRow } from "./grok-csv";
@@ -41,6 +42,9 @@ interface Actions {
   hydrateFromDraft: () => boolean;
   applyGrok: (rows: GrokRow[]) => void;
   loadJobById: (id: string) => Promise<boolean>;
+  setCaptureLabel: (filename: string, label: string) => void;
+  removeCapture: (filename: string) => void;
+  attachCaptureToPin: (filename: string, pinId: string) => void;
 }
 
 export const useReportStore = create<State & Actions>((set, get) => ({
@@ -284,7 +288,74 @@ export const useReportStore = create<State & Actions>((set, get) => ({
       persistDraft(next);
       return { project: next };
     }),
+
+  setCaptureLabel: (filename, label) =>
+    set((s) => {
+      if (!s.project) return s;
+      const captures = (s.project.captures ?? []).map((c) =>
+        c.filename === filename ? { ...c, label } : c,
+      );
+      const next: ReportProject = {
+        ...s.project,
+        updatedAt: new Date().toISOString(),
+        captures,
+      };
+      persistDraft(next);
+      return { project: next };
+    }),
+
+  removeCapture: (filename) =>
+    set((s) => {
+      if (!s.project) return s;
+      const captures = (s.project.captures ?? []).filter(
+        (c) => c.filename !== filename,
+      );
+      // also drop any pin references to this filename
+      const pins: Record<string, Pin> = {};
+      for (const [id, p] of Object.entries(s.project.pins)) {
+        pins[id] = { ...p, photos: p.photos.filter((ph) => ph.filename !== filename) };
+      }
+      const { [filename]: _drop, ...assets } = s.project.assets;
+      const next: ReportProject = {
+        ...s.project,
+        updatedAt: new Date().toISOString(),
+        captures,
+        pins,
+        assets,
+      };
+      persistDraft(next);
+      return { project: next };
+    }),
+
+  attachCaptureToPin: (filename, pinId) =>
+    set((s) => {
+      if (!s.project) return s;
+      const pin = s.project.pins[pinId];
+      if (!pin) return s;
+      // Skip if already attached.
+      if (pin.photos.some((ph) => ph.filename === filename)) return s;
+      // Synthetic n: max existing across all pins + 1, min 1.
+      let maxN = 0;
+      for (const p of Object.values(s.project.pins)) {
+        for (const ph of p.photos) if (ph.n > maxN) maxN = ph.n;
+      }
+      const cap = (s.project.captures ?? []).find((c) => c.filename === filename);
+      const photos: PhotoRef[] = [
+        ...pin.photos,
+        { n: maxN + 1, filename, caption: cap?.label },
+      ];
+      const next: ReportProject = {
+        ...s.project,
+        updatedAt: new Date().toISOString(),
+        pins: { ...s.project.pins, [pinId]: { ...pin, photos } },
+      };
+      persistDraft(next);
+      return { project: next };
+    }),
 }));
+
+// Touch import so unused type is fine when CaptureRef is only referenced via project shape.
+export type { CaptureRef };
 
 export type { CoverSection, FreeTextSection, FindingsSection, PhotoRef };
 
