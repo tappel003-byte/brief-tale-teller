@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Copy, CheckCircle2, Sparkles, AlertCircle } from "lucide-react";
+import { Copy, CheckCircle2, Sparkles, AlertCircle, Mic, Download } from "lucide-react";
 import { useReportStore } from "@/lib/store";
 import { buildGrokPrompt } from "@/lib/grok-prompt";
 import { parseGrokCsv, type ParseResult } from "@/lib/grok-csv";
@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 export function GrokDialog({ onClose }: { onClose: () => void }) {
   const project = useReportStore((s) => s.project)!;
+  const objectUrls = useReportStore((s) => s.objectUrls);
   const applyGrok = useReportStore((s) => s.applyGrok);
 
   const [copied, setCopied] = useState(false);
@@ -15,6 +16,7 @@ export function GrokDialog({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string | null>(null);
 
   const promptText = buildGrokPrompt(project);
+  const audioClips = project.audioClips ?? [];
 
   async function onCopyPrompt() {
     try {
@@ -45,10 +47,12 @@ export function GrokDialog({ onClose }: { onClose: () => void }) {
 
   function onApply() {
     if (!preview) return;
-    applyGrok(preview.rows);
-    toast.success(`Applied ${preview.rows.length} cleaned rows`);
+    applyGrok(preview.rows, preview.interviewNotes);
+    const notesMsg = preview.interviewNotes ? " + Interview Notes" : "";
+    toast.success(`Applied ${preview.rows.length} cleaned rows${notesMsg}`);
     onClose();
   }
+
 
   return (
     <div
