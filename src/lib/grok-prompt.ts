@@ -16,9 +16,9 @@ The engineer may also attach one or more AUDIO files to this chat (homeowner int
 TASK
 Return TWO things, in this exact order, with the divider line shown below between them.
 
-PART 1 — Cleaned pin CSV. A single CSV with exactly these four columns, in this order:
+PART 1 — Cleaned pin CSV. A single CSV with exactly these five columns, in this order:
 
-  Pin, Room/Area, Description, Photos
+  Pin, Room/Area, Description, Symbol, Photos
 
 Rules for the Description column:
 - Fix obvious dictation/transcription errors (e.g. "stair step" -> "stairstep crack", "horiztonal" -> "horizontal", "the the" -> "the").
@@ -29,6 +29,14 @@ Rules for the Description column:
 
 Rules for Room/Area:
 - Pass through as given; only fix obvious transcription errors. If the input is blank, infer from the Type/Description only when obvious; otherwise leave blank.
+
+Rules for the Symbol column:
+- Tag each pin with EXACTLY ONE symbol code from this controlled vocabulary, chosen as the single best fit for the dominant distress described:
+  crack_vertical, crack_horizontal, crack_diagonal, crack_stairstep, crack_map,
+  spall, displacement, deflection, gap_separation, water_stain, efflorescence,
+  rust_staining, settlement, rot_decay, other
+- Use "other" only if no code reasonably applies. Never invent new codes. Never leave blank. Never list more than one.
+- Output the code exactly as written above (lowercase, underscores).
 
 Rules for Pin and Photos:
 - Pass through unchanged.
