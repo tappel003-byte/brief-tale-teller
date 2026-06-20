@@ -223,8 +223,20 @@ export function GrokDialog({ onClose }: { onClose: () => void }) {
                       </tbody>
                     </table>
                   </div>
+                  {preview.interviewNotes && (
+                    <div className="mt-3 border rounded-sm p-3 bg-canvas/40">
+                      <div className="flex items-center gap-1.5 text-xs font-medium mb-1.5">
+                        <Mic className="size-3.5 text-primary" />
+                        Interview Notes detected — will be added as a report section
+                      </div>
+                      <p className="text-xs whitespace-pre-wrap leading-relaxed text-muted-foreground line-clamp-[12]">
+                        {preview.interviewNotes}
+                      </p>
+                    </div>
+                  )}
                 </>
               )}
+
 
               {!preview && !error && (
                 <p className="text-xs text-muted-foreground italic">
