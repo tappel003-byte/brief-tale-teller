@@ -79,7 +79,13 @@ export function buildGrokPrompt(project: ReportProject): string {
     | undefined;
   const site = cover?.address || cover?.title || project.name || "";
   const prefix = site ? `SURVEY SITE: ${site}\n\n` : "";
-  return GROK_INSTRUCTIONS + prefix + csv;
+  const clips = project.audioClips ?? [];
+  const audioNote = clips.length
+    ? `\n\nAUDIO ATTACHED: ${clips.length} clip(s) — ${clips
+        .map((c) => c.filename)
+        .join(", ")}. Transcribe these into PART 2 (Interview Notes).\n`
+    : `\n\nAUDIO ATTACHED: none. Output "(no audio interview provided)" for PART 2.\n`;
+  return GROK_INSTRUCTIONS + prefix + csv + audioNote;
 }
 
 function collectPinOrder(project: ReportProject): string[] {
