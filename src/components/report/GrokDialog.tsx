@@ -106,12 +106,46 @@ export function GrokDialog({ onClose }: { onClose: () => void }) {
                 )}
               </button>
             </div>
+            {audioClips.length > 0 && (
+              <div className="border-b px-5 py-3 shrink-0 bg-canvas/40">
+                <div className="flex items-center gap-1.5 text-xs font-medium mb-1.5">
+                  <Mic className="size-3.5 text-primary" />
+                  {audioClips.length} voice clip{audioClips.length === 1 ? "" : "s"} — attach to Grok with the prompt
+                </div>
+                <div className="text-[11px] text-muted-foreground mb-2">
+                  Download each clip and drag it into the Grok chat alongside the pasted prompt. Grok will transcribe and return them as an "Interview Notes" block.
+                </div>
+                <ul className="space-y-1 max-h-32 overflow-auto thin-scroll">
+                  {audioClips.map((clip) => {
+                    const url = objectUrls[clip.filename];
+                    return (
+                      <li key={clip.filename} className="flex items-center justify-between gap-2 text-xs">
+                        <span className="font-mono truncate">{clip.filename}</span>
+                        {url ? (
+                          <a
+                            href={url}
+                            download={clip.filename}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm border hover:bg-accent shrink-0"
+                          >
+                            <Download className="size-3" />
+                            Download
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground">unavailable</span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
             <textarea
               readOnly
               value={promptText}
               className="flex-1 w-full font-mono text-[11px] leading-snug p-4 bg-canvas/60 resize-none focus:outline-none"
             />
           </section>
+
 
           {/* RIGHT: paste */}
           <section className="flex flex-col min-h-0">
