@@ -17,6 +17,8 @@ interface RawPinRow {
   Description?: string;
   "Photo Count"?: string;
   "Photo Numbers"?: string;
+  X?: string;
+  Y?: string;
 }
 
 interface ImportResult {
