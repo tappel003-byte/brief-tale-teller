@@ -7,6 +7,7 @@ import type {
   PhotoAsset,
   PhotoRef,
   CaptureRef,
+  AudioClipRef,
   ReportProject,
   ReportSection,
 } from "./types";
@@ -29,6 +30,7 @@ interface ImportResult {
 const PHOTO_RE = /^photo-(\d+)\.(jpe?g|png|webp)$/i;
 const PLAN_RE = /^plan\.(png|jpe?g|pdf)$/i;
 const IMG_EXT_RE = /\.(png|jpe?g|webp|pdf)$/i;
+const AUDIO_EXT_RE = /\.(m4a|mp3|wav|webm|ogg|oga|aac|mp4|caf)$/i;
 const CAPTURE_FOLDER_RE = /(^|\/)photo[\s_-]?captur[^/]*(\/|$)/i;
 
 const MIME_BY_EXT: Record<string, string> = {
@@ -37,6 +39,15 @@ const MIME_BY_EXT: Record<string, string> = {
   png: "image/png",
   webp: "image/webp",
   pdf: "application/pdf",
+  m4a: "audio/mp4",
+  mp4: "audio/mp4",
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  webm: "audio/webm",
+  ogg: "audio/ogg",
+  oga: "audio/ogg",
+  aac: "audio/aac",
+  caf: "audio/x-caf",
 };
 
 export async function importZipFile(file: File): Promise<ImportResult> {
