@@ -901,6 +901,11 @@ function PinEditor({
                   <span className="text-sm flex-1 truncate text-left">
                     {pin.cleanedDescription || pin.rawDescription || "No description"}
                   </span>
+                  {pin.roomArea && (
+                    <span className="hidden sm:inline text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary font-medium shrink-0 max-w-[140px] truncate">
+                      {pin.roomArea}
+                    </span>
+                  )}
                   {pin.type && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono uppercase shrink-0">
                       {pin.type}
