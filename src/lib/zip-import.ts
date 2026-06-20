@@ -27,6 +27,7 @@ interface ImportResult {
 const PHOTO_RE = /^photo-(\d+)\.(jpe?g|png|webp)$/i;
 const PLAN_RE = /^plan\.(png|jpe?g|pdf)$/i;
 const IMG_EXT_RE = /\.(png|jpe?g|webp|pdf)$/i;
+const CAPTURE_FOLDER_RE = /(^|\/)photo[\s_-]?captur[^/]*(\/|$)/i;
 
 const MIME_BY_EXT: Record<string, string> = {
   jpg: "image/jpeg",
