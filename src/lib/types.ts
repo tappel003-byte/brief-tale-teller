@@ -30,10 +30,12 @@ export interface Pin {
   photoCount: number;
   photos: PhotoRef[];
   /** Optional per-finding heading override. */
-  /** Optional per-finding heading override. */
   headingOverride?: string;
   /** Per-pin color override for the schedule circle. Undefined = auto (exterior=grey, else red). */
   colorOverride?: "red" | "grey";
+  /** Normalized plan position, 0–1 fractions of plan image width/height. Origin top-left. */
+  x?: number;
+  y?: number;
 }
 
 export interface CoverSection {

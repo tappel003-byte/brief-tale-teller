@@ -17,6 +17,8 @@ interface RawPinRow {
   Description?: string;
   "Photo Count"?: string;
   "Photo Numbers"?: string;
+  X?: string;
+  Y?: string;
 }
 
 interface ImportResult {
@@ -131,6 +133,10 @@ export async function importZipFile(file: File): Promise<ImportResult> {
 
     const id = `pin-${orderedPinIds.length + 1}`;
     const desc = (row.Description ?? "").toString().trim();
+    const xNum = parseFloat((row.X ?? "").toString());
+    const yNum = parseFloat((row.Y ?? "").toString());
+    const x = Number.isFinite(xNum) ? clamp01(xNum) : undefined;
+    const y = Number.isFinite(yNum) ? clamp01(yNum) : undefined;
     pins[id] = {
       id,
       location: location || String(orderedPinIds.length + 1),
@@ -140,6 +146,8 @@ export async function importZipFile(file: File): Promise<ImportResult> {
       userEdited: false,
       photoCount: Number(row["Photo Count"] ?? photos.length) || photos.length,
       photos,
+      x,
+      y,
     };
     orderedPinIds.push(id);
   }
@@ -231,6 +239,10 @@ function deriveTitleFromFilename(name: string): string {
     .replace(/[-_]+/g, " ")
     .replace(/\s+/g, " ")
     .trim() || "Untitled Report";
+}
+
+function clamp01(n: number): number {
+  return Math.max(0, Math.min(1, n));
 }
 
 function arrayBufferToBase64(ab: ArrayBuffer): string {

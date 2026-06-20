@@ -17,11 +17,13 @@ import {
 
 import { useReportStore } from "@/lib/store";
 import { GrokDialog } from "@/components/report/GrokDialog";
+import { PlanPinEditor } from "@/components/report/PlanPinEditor";
 import { renderPinScheduleJpeg } from "@/lib/export-pin-schedule";
 import {
   renderPhotoPlates,
   type PhotoPlateItem,
 } from "@/lib/export-photo-plates";
+import { renderAnnotatedPlanBlob } from "@/lib/render-annotated-plan";
 import { toast } from "sonner";
 
 const SearchSchema = z.object({ job: z.string().optional() });
@@ -422,10 +424,22 @@ function ExportCard({
       const base = slug(cover?.address || project.name);
       const zipName = `${base}-report-pieces.zip`;
 
-      // 1. Map — original file, unchanged.
+      // 1. Map — render annotated from clean plan + nudged pin positions
+      //    when any coords exist and the plan is a raster image; else use the
+      //    selected file as-is.
       if (mapAsset) {
-        const ext = (mapFilename!.split(".").pop() || "bin").toLowerCase();
-        zip.file(`${base}-map.${ext}`, base64ToBlob(mapAsset.base64, mapAsset.mime));
+        const anyCoords = pins.some(
+          (p) => typeof p.x === "number" && typeof p.y === "number",
+        );
+        if (anyCoords && mapAsset.mime.startsWith("image/")) {
+          const { blob, ext } = await renderAnnotatedPlanBlob(mapAsset, pins, {
+            format: "image/png",
+          });
+          zip.file(`${base}-map.${ext}`, blob);
+        } else {
+          const ext = (mapFilename!.split(".").pop() || "bin").toLowerCase();
+          zip.file(`${base}-map.${ext}`, base64ToBlob(mapAsset.base64, mapAsset.mime));
+        }
       }
 
       // 2. Pin schedule — one JPEG with side-by-side columns.
@@ -464,8 +478,34 @@ function ExportCard({
     }
   }
 
+  const objectUrls = useReportStore((s) => s.objectUrls);
+  const planUrl = mapFilename ? objectUrls[mapFilename] : undefined;
+  const hasAnyCoords = pins.some((p) => typeof p.x === "number" && typeof p.y === "number");
+
   return (
     <div className="space-y-4">
+      {/* Interactive plan — drag pins to nudge stacked ones. */}
+      {planUrl && mapAsset?.mime?.startsWith("image/") && (
+        <div className="rounded-md border bg-panel/60 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                Plan & pins
+              </div>
+              <div className="text-sm font-medium">
+                Drag any pin to separate overlapping ones
+              </div>
+            </div>
+            {hasAnyCoords && (
+              <span className="text-[11px] font-mono text-emerald-600">
+                using nudged positions in export
+              </span>
+            )}
+          </div>
+          <PlanPinEditor planUrl={planUrl} pins={pins} />
+        </div>
+      )}
+
       {/* Settings — map picker + optional typography. */}
       <div className="rounded-md border bg-panel/60 p-4">
         <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-3">

@@ -45,6 +45,7 @@ interface Actions {
   setCaptureLabel: (filename: string, label: string) => void;
   removeCapture: (filename: string) => void;
   attachCaptureToPin: (filename: string, pinId: string) => void;
+  setPinPosition: (pinId: string, x: number | undefined, y: number | undefined) => void;
 }
 
 export const useReportStore = create<State & Actions>((set, get) => ({
@@ -348,6 +349,22 @@ export const useReportStore = create<State & Actions>((set, get) => ({
         ...s.project,
         updatedAt: new Date().toISOString(),
         pins: { ...s.project.pins, [pinId]: { ...pin, photos } },
+      };
+      persistDraft(next);
+      return { project: next };
+    }),
+
+  setPinPosition: (pinId, x, y) =>
+    set((s) => {
+      if (!s.project) return s;
+      const pin = s.project.pins[pinId];
+      if (!pin) return s;
+      const cx = x === undefined ? undefined : Math.max(0, Math.min(1, x));
+      const cy = y === undefined ? undefined : Math.max(0, Math.min(1, y));
+      const next: ReportProject = {
+        ...s.project,
+        updatedAt: new Date().toISOString(),
+        pins: { ...s.project.pins, [pinId]: { ...pin, x: cx, y: cy } },
       };
       persistDraft(next);
       return { project: next };
