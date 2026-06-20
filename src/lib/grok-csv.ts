@@ -20,6 +20,29 @@ export interface ParseResult {
   missingPins: string[];
   /** CSV pins that don't match any pin in the project. */
   unknownPins: string[];
+  /** Interview Notes block split off from the CSV, when present. */
+  interviewNotes?: string;
+}
+
+const INTERVIEW_DIVIDER_RE = /^=+\s*INTERVIEW\s+NOTES\s*=+\s*$/im;
+
+/**
+ * Split Grok's combined reply ("PART 1 CSV\n===INTERVIEW NOTES===\nPART 2")
+ * into the CSV portion and the interview-notes portion. Either may be empty.
+ */
+export function splitGrokReply(text: string): {
+  csv: string;
+  interviewNotes?: string;
+} {
+  const m = text.match(INTERVIEW_DIVIDER_RE);
+  if (!m || m.index === undefined) return { csv: text };
+  const csv = text.slice(0, m.index).trim();
+  const rest = text.slice(m.index + m[0].length).trim();
+  const notes =
+    !rest || /^\(no audio interview provided\)\s*$/i.test(rest)
+      ? undefined
+      : rest;
+  return { csv, interviewNotes: notes };
 }
 
 const COL_ALIASES: Record<keyof GrokRow, string[]> = {
