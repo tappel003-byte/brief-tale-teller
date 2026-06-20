@@ -17,11 +17,13 @@ import {
 
 import { useReportStore } from "@/lib/store";
 import { GrokDialog } from "@/components/report/GrokDialog";
+import { PlanPinEditor } from "@/components/report/PlanPinEditor";
 import { renderPinScheduleJpeg } from "@/lib/export-pin-schedule";
 import {
   renderPhotoPlates,
   type PhotoPlateItem,
 } from "@/lib/export-photo-plates";
+import { renderAnnotatedPlanBlob } from "@/lib/render-annotated-plan";
 import { toast } from "sonner";
 
 const SearchSchema = z.object({ job: z.string().optional() });
