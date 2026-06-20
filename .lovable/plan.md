@@ -152,3 +152,18 @@ The existing single-project workspace stays as the "open job" view, lightly adap
 7. Polish: delete confirm, status badges, empty states
 
 I'll pause after step 4 so you can do a full round-trip with the real ZIP + real Grok before I build the two export renderers.
+
+---
+
+## v2 Build List (pending — next session)
+
+### Functional improvements
+1. **Symbol placer / symbol layer** — Grok tags each pin with a symbol on import (ceiling_crack, spall, water_stain, etc.); report builder renders a symbol layer on top of the pin layer and auto-generates a legend box on the plan with only the symbols actually used.
+2. **Undo/redo** — history stack so deleting a photo, capture, or pin isn't permanent.
+3. **Interactive plan preview** — plan image shown in the Arrange stage with pin markers overlaid + a missing-pins checklist.
+
+### UI overhaul
+4. **Pipeline status strip** — Import → Grok → Review → Export progress indicator on the workspace.
+5. **Job-card dashboard** — replace the plain jobs table with visual job cards.
+6. **Audio clips on job detail** — inline audio player for voice notes.
+7. **App name + visual identity** — logo, color palette, and type pairing.
