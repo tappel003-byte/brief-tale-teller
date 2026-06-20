@@ -797,6 +797,8 @@ function PinEditor({
 }) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [picker, setPicker] = useState<{ pinId: string; idx: number | "add" } | null>(null);
+  const [groupByRoom, setGroupByRoom] = useState(false);
+  const [collapsedRooms, setCollapsedRooms] = useState<Set<string>>(new Set());
   const setCleanedDescription = useReportStore((s) => s.setCleanedDescription);
   const revertCleaned = useReportStore((s) => s.revertCleaned);
   const reorderPhoto = useReportStore((s) => s.reorderPhoto);
@@ -817,6 +819,33 @@ function PinEditor({
   const sorted = [...pins].sort(
     (a, b) => (parseInt(a.location) || 9999) - (parseInt(b.location) || 9999),
   );
+
+  // Unique non-empty room names across all pins — used as datalist suggestions
+  // and to drive the optional "Group by room" view.
+  const roomOptions = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of pins) {
+      const r = (p.roomArea ?? "").trim();
+      if (r) set.add(r);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [pins]);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, typeof sorted>();
+    for (const p of sorted) {
+      const key = (p.roomArea ?? "").trim() || "Unassigned";
+      const arr = map.get(key) ?? [];
+      arr.push(p);
+      map.set(key, arr);
+    }
+    const keys = Array.from(map.keys()).sort((a, b) => {
+      if (a === "Unassigned") return -1;
+      if (b === "Unassigned") return 1;
+      return a.localeCompare(b);
+    });
+    return keys.map((k) => ({ room: k, pins: map.get(k)! }));
+  }, [sorted]);
 
   function applyPick(filename: string, n: number) {
     if (!picker) return;
