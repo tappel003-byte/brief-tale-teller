@@ -920,7 +920,30 @@ function PinEditor({
 
 
               {isOpen && (
-                <div className="px-4 pb-4 bg-canvas/40">
+                <div className="px-4 pb-4 bg-canvas/40 space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-muted-foreground mb-1">
+                      Room / area
+                    </label>
+                    <input
+                      type="text"
+                      list={`rooms-${pin.id}`}
+                      value={pin.roomArea ?? ""}
+                      onChange={(e) =>
+                        updatePin(pin.id, { roomArea: e.target.value })
+                      }
+                      placeholder="e.g. Kitchen, Exterior, Basement…"
+                      className="w-full text-sm rounded-sm border border-input bg-background px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-ring"
+                    />
+                    <datalist id={`rooms-${pin.id}`}>
+                      {roomOptions.map((r) => (
+                        <option key={r} value={r} />
+                      ))}
+                    </datalist>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Used in the Grok export and to group findings in the report.
+                    </p>
+                  </div>
                   <div className="grid gap-3 md:grid-cols-2">
                     <div>
                       <label className="block text-xs font-medium text-muted-foreground mb-1">
