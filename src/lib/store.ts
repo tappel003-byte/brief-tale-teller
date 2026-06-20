@@ -353,6 +353,22 @@ export const useReportStore = create<State & Actions>((set, get) => ({
       persistDraft(next);
       return { project: next };
     }),
+
+  setPinPosition: (pinId, x, y) =>
+    set((s) => {
+      if (!s.project) return s;
+      const pin = s.project.pins[pinId];
+      if (!pin) return s;
+      const cx = x === undefined ? undefined : Math.max(0, Math.min(1, x));
+      const cy = y === undefined ? undefined : Math.max(0, Math.min(1, y));
+      const next: ReportProject = {
+        ...s.project,
+        updatedAt: new Date().toISOString(),
+        pins: { ...s.project.pins, [pinId]: { ...pin, x: cx, y: cy } },
+      };
+      persistDraft(next);
+      return { project: next };
+    }),
 }));
 
 // Touch import so unused type is fine when CaptureRef is only referenced via project shape.
