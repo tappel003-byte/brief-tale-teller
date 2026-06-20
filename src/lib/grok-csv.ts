@@ -57,7 +57,8 @@ export function parseGrokCsv(
   project: ReportProject,
 ): ParseResult {
   const warnings: string[] = [];
-  const parsed = Papa.parse<Record<string, string>>(text.trim(), {
+  const { csv, interviewNotes } = splitGrokReply(text);
+  const parsed = Papa.parse<Record<string, string>>(csv.trim(), {
     header: true,
     skipEmptyLines: true,
     transformHeader: (h) => h.trim(),
@@ -65,6 +66,7 @@ export function parseGrokCsv(
   if (parsed.errors.length) {
     for (const e of parsed.errors) warnings.push(`Row ${e.row}: ${e.message}`);
   }
+
 
   const headerMap = mapHeaders(parsed.meta.fields ?? []);
   if (!headerMap.pin || !headerMap.description) {
