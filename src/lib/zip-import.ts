@@ -241,6 +241,10 @@ function deriveTitleFromFilename(name: string): string {
     .trim() || "Untitled Report";
 }
 
+function clamp01(n: number): number {
+  return Math.max(0, Math.min(1, n));
+}
+
 function arrayBufferToBase64(ab: ArrayBuffer): string {
   const bytes = new Uint8Array(ab);
   let binary = "";
