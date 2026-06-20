@@ -466,8 +466,33 @@ function ExportCard({
     }
   }
 
+  const planUrl = mapFilename ? useReportStore.getState().objectUrls[mapFilename] : undefined;
+  const hasAnyCoords = pins.some((p) => typeof p.x === "number" && typeof p.y === "number");
+
   return (
     <div className="space-y-4">
+      {/* Interactive plan — drag pins to nudge stacked ones. */}
+      {planUrl && mapAsset?.mime?.startsWith("image/") && (
+        <div className="rounded-md border bg-panel/60 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                Plan & pins
+              </div>
+              <div className="text-sm font-medium">
+                Drag any pin to separate overlapping ones
+              </div>
+            </div>
+            {hasAnyCoords && (
+              <span className="text-[11px] font-mono text-emerald-600">
+                using nudged positions in export
+              </span>
+            )}
+          </div>
+          <PlanPinEditor planUrl={planUrl} pins={pins} />
+        </div>
+      )}
+
       {/* Settings — map picker + optional typography. */}
       <div className="rounded-md border bg-panel/60 p-4">
         <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground mb-3">
