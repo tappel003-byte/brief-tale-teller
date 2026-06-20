@@ -219,7 +219,9 @@ export async function importZipFile(file: File): Promise<ImportResult> {
     sections,
     assets,
     captures,
+    audioClips,
   };
+
 
   return { project, objectUrls };
 }
