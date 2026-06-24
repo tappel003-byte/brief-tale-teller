@@ -113,6 +113,14 @@ export function PlanPinEditor({ planUrl, pins }: Props) {
             const cy = p.y * 1000;
             const r = 22;
             const isDragging = dragging === p.id;
+            const fill =
+              p.colorOverride === "grey"
+                ? "#718096"
+                : p.colorOverride === "red"
+                  ? "#c53030"
+                  : (p.type || "").toLowerCase().includes("exterior")
+                    ? "#718096"
+                    : "#c53030";
             return (
               <g
                 key={p.id}
@@ -123,11 +131,12 @@ export function PlanPinEditor({ planUrl, pins }: Props) {
                   cx={cx}
                   cy={cy}
                   r={r}
-                  fill="#c14a2b"
+                  fill={fill}
                   stroke="#fff"
                   strokeWidth={4}
                   opacity={isDragging ? 0.85 : 1}
                 />
+
                 <text
                   x={cx}
                   y={cy}
