@@ -142,7 +142,7 @@ export function PlanPinEditor({ planUrl, pins }: Props) {
                   y={cy}
                   textAnchor="middle"
                   dominantBaseline="central"
-                  fontSize={22}
+                  fontSize={13}
                   fontWeight={700}
                   fill="#fff"
                   style={{ userSelect: "none", pointerEvents: "none" }}
