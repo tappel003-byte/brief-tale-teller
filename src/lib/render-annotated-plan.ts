@@ -4,10 +4,15 @@
 
 import type { Pin, PhotoAsset } from "./types";
 
-interface PlacedPin {
-  location: string;
-  x: number; // 0–1
-  y: number; // 0–1
+const PIN_RED = "#c53030";
+const PIN_GREY = "#718096";
+
+function pinColorFor(pin: Pin): string {
+  if (pin.colorOverride === "grey") return PIN_GREY;
+  if (pin.colorOverride === "red") return PIN_RED;
+  const t = (pin.type || "").trim().toLowerCase();
+  if (t.includes("exterior")) return PIN_GREY;
+  return PIN_RED;
 }
 
 export async function renderAnnotatedPlanBlob(
@@ -15,11 +20,10 @@ export async function renderAnnotatedPlanBlob(
   pins: Pin[],
   opts: { format?: "image/png" | "image/jpeg"; quality?: number } = {},
 ): Promise<{ blob: Blob; ext: "png" | "jpg" }> {
-  const placed: PlacedPin[] = pins
-    .filter((p): p is Pin & { x: number; y: number } =>
+  const placed = pins.filter(
+    (p): p is Pin & { x: number; y: number } =>
       typeof p.x === "number" && typeof p.y === "number",
-    )
-    .map((p) => ({ location: p.location, x: p.x, y: p.y }));
+  );
 
   const dataUrl = `data:${planAsset.mime};base64,${planAsset.base64}`;
   const img = await loadImage(dataUrl);
@@ -41,7 +45,7 @@ export async function renderAnnotatedPlanBlob(
     const cy = p.y * H;
     ctx.beginPath();
     ctx.arc(cx, cy, R, 0, Math.PI * 2);
-    ctx.fillStyle = "#c14a2b";
+    ctx.fillStyle = pinColorFor(p);
     ctx.fill();
     ctx.lineWidth = R * 0.18;
     ctx.strokeStyle = "#fff";
