@@ -111,7 +111,7 @@ export function PlanPinEditor({ planUrl, pins }: Props) {
           {sortedPlaced.map((p) => {
             const cx = p.x * 1000;
             const cy = p.y * 1000;
-            const r = 22;
+            const r = 13;
             const isDragging = dragging === p.id;
             const fill =
               p.colorOverride === "grey"
