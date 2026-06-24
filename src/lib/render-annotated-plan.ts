@@ -36,7 +36,7 @@ export async function renderAnnotatedPlanBlob(
   if (!ctx) throw new Error("2D context unavailable");
   ctx.drawImage(img, 0, 0, W, H);
 
-  const R = Math.max(9, Math.min(W, H) * 0.011);
+  const R = Math.max(7, Math.min(W, H) * 0.0088);
   ctx.font = `700 ${Math.round(R * 1.05)}px -apple-system, "Segoe UI", Roboto, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
