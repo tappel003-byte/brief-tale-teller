@@ -29,20 +29,26 @@ export async function renderAnnotatedPlanBlob(
   const img = await loadImage(dataUrl);
   const W = img.naturalWidth;
   const H = img.naturalHeight;
+  const R = Math.max(7, Math.min(W, H) * 0.0088);
+  // Wider white margin so edge pins (and their labels) aren't clipped.
+  const M = Math.ceil(Math.max(R * 4, Math.min(W, H) * 0.04));
+  const CW = W + M * 2;
+  const CH = H + M * 2;
   const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
+  canvas.width = CW;
+  canvas.height = CH;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("2D context unavailable");
-  ctx.drawImage(img, 0, 0, W, H);
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, CW, CH);
+  ctx.drawImage(img, M, M, W, H);
 
-  const R = Math.max(7, Math.min(W, H) * 0.0088);
   ctx.font = `700 ${Math.round(R * 1.05)}px -apple-system, "Segoe UI", Roboto, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   for (const p of placed) {
-    const cx = p.x * W;
-    const cy = p.y * H;
+    const cx = M + p.x * W;
+    const cy = M + p.y * H;
     ctx.beginPath();
     ctx.arc(cx, cy, R, 0, Math.PI * 2);
     ctx.fillStyle = pinColorFor(p);
