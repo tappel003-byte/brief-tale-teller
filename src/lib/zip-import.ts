@@ -172,7 +172,6 @@ export async function importZipFile(file: File): Promise<ImportResult> {
     pins[id] = {
       id,
       location: locationText || String(orderedPinIds.length + 1),
-
       type: (row.Type ?? "").toString().trim(),
       rawDescription: desc,
       cleanedDescription: desc,
