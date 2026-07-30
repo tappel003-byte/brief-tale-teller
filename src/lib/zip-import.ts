@@ -13,6 +13,9 @@ import type {
 } from "./types";
 
 interface RawPinRow {
+  /** New export: room/area text. */
+  Room?: string;
+  /** Old export: room text. New export: pin number. */
   Location?: string;
   Type?: string;
   Description?: string;
@@ -146,8 +149,13 @@ export async function importZipFile(file: File): Promise<ImportResult> {
   const orderedPinIds: string[] = [];
 
   for (const row of parsed.data) {
-    const location = (row.Location ?? "").toString().trim();
-    if (!location && !(row.Description ?? "").trim()) continue;
+    // New export: room/location text lives in "Room"; "Location" is the pin number.
+    // Old export: room text was (mis)placed in "Location".
+    const room = (row.Room ?? "").toString().trim();
+    const legacyLocation = (row.Location ?? "").toString().trim();
+    const legacyIsNumeric = /^\d+$/.test(legacyLocation);
+    const locationText = room || (legacyIsNumeric ? "" : legacyLocation);
+    if (!locationText && !(row.Description ?? "").trim()) continue;
 
     const nums = parsePhotoNumbers(row["Photo Numbers"] ?? "");
     const photos: PhotoRef[] = nums.map((n) => ({
@@ -163,7 +171,7 @@ export async function importZipFile(file: File): Promise<ImportResult> {
     const y = Number.isFinite(yNum) ? clamp01(yNum) : undefined;
     pins[id] = {
       id,
-      location: location || String(orderedPinIds.length + 1),
+      location: locationText || String(orderedPinIds.length + 1),
       type: (row.Type ?? "").toString().trim(),
       rawDescription: desc,
       cleanedDescription: desc,
